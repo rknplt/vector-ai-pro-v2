@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated users can read app settings" ON public.app_settings;

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Vector AI Pro - Yapay Zeka Asistanı | Kod Yazma, Görüntü Analizi, Sesli Komutlar</title>
+    <meta name="description" content="Vector AI Pro ile kod yazma, görüntü ve video analizi, araç arıza teşhisi, muhasebe yardımı ve sesli komutlar. Windows ve Android için en gelişmiş AI asistanı.">
+    <meta name="keywords" content="yapay zeka, AI asistan, kod yazma, görüntü analizi, sesli asistan, araç arıza, muhasebe" />
+    <meta name="author" content="Vector AI Pro" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://vectoraipro.com" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#8B5CF6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vector AI" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (let reg of regs) reg.unregister();
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(name);
+        });
+      }
+    </script>
+    
+    <!-- Open Graph -->
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    
+    
+    <link rel="icon" type="image/png" href="/pwa-192x192.png">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Vector AI Pro",
+      "applicationCategory": "AIApplication",
+      "operatingSystem": ["Windows", "Android"],
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "TRY"
+        },
+        {
+          "@type": "Offer",
+          "name": "Plus",
+          "price": "299",
+          "priceCurrency": "TRY"
+        }
+      ],
+      "description": "Kod yazma, görüntü analizi, sesli komutlar ve daha fazlasını sunan yapay zeka asistanı."
+    }
+    </script>
+    <meta property="og:title" content="Vector AI Pro - Yapay Zeka Asistanı | Kod Yazma, Görüntü Analizi, Sesli Komutlar">
+  <meta name="twitter:title" content="Vector AI Pro - Yapay Zeka Asistanı | Kod Yazma, Görüntü Analizi, Sesli Komutlar">
+  <meta property="og:description" content="Vector AI Pro ile kod yazma, görüntü ve video analizi, araç arıza teşhisi, muhasebe yardımı ve sesli komutlar. Windows ve Android için en gelişmiş AI asistanı.">
+  <meta name="twitter:description" content="Vector AI Pro ile kod yazma, görüntü ve video analizi, araç arıza teşhisi, muhasebe yardımı ve sesli komutlar. Windows ve Android için en gelişmiş AI asistanı.">
+  <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b003c767-1961-475e-8943-efe87edc9cb9/id-preview-1b1ab16f--537df260-70b5-4f4b-808e-6c4e50077aa4.lovable.app-1771329990428.png">
+  <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b003c767-1961-475e-8943-efe87edc9cb9/id-preview-1b1ab16f--537df260-70b5-4f4b-808e-6c4e50077aa4.lovable.app-1771329990428.png">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
