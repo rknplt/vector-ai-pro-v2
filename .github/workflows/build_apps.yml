@@ -49,6 +49,9 @@ jobs:
           # Ensure minimum SDK is 26 (Android 8.0 Oreo) for backward compatibility
           sed -i 's/minSdkVersion = .*/minSdkVersion = 26/' android/variables.gradle || true
           
+          # Fix Kotlin duplicate class issues by forcing kotlin-bom
+          sed -i 's/dependencies {/dependencies {\n    implementation platform("org.jetbrains.kotlin:kotlin-bom:1.8.22")/' android/app/build.gradle || true
+          
           # Inject permissions into AndroidManifest.xml
           python3 -c "
           import re
