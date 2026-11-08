@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Capacitor } from "@capacitor/core";
+import { TextToSpeech as NativeTTS } from "@capacitor-community/text-to-speech";
 
 export interface VoiceOption {
   id: string;
@@ -104,7 +106,6 @@ export const cleanSpeechText = (text: string): string => {
     .replace(/\.{2,}/g, ".")
     .replace(/!{2,}/g, "!")
     .replace(/\?{2,}/g, "?")
-    // Soften mid-sentence exclamations so the neural TTS doesn't pause for 800ms
     .replace(/([a-zA-ZÇĞİÖŞÜçğıöşü\u0600-\u06FF\u0400-\u04FF]+)!\s+/gu, "$1, ")
     .replace(/\s+/g, " ")
     .trim();
@@ -138,7 +139,6 @@ export const useTextToSpeech = () => {
     if (saved) return saved;
     return DEFAULT_VOICE_PER_LANG[language] || "tr-emel";
   });
-  // Default speed: +20% for fast, natural conversational fluency!
   const [speakingSpeed, setSpeakingSpeed] = useState<string>(() => {
     return localStorage.getItem(SPEED_STORAGE_KEY) || "+20%";
   });
@@ -150,10 +150,9 @@ export const useTextToSpeech = () => {
       const found = LANGUAGE_VOICES[langKey].find(v => v.id === voiceId);
       if (found) return found;
     }
-    return LANGUAGE_VOICES.tr[0]; // Emel (Female)
+    return LANGUAGE_VOICES.tr[0];
   }, []);
 
-  // Auto-switch voice when language changes if current voice belongs to another language
   useEffect(() => {
     const currentVoice = getVoiceDetails(selectedVoiceId);
     if (currentVoice.lang !== language) {
@@ -174,6 +173,9 @@ export const useTextToSpeech = () => {
   }, []);
 
   const stop = useCallback(() => {
+    if (Capacitor.isNativePlatform()) {
+      NativeTTS.stop().catch(() => {});
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -190,7 +192,7 @@ export const useTextToSpeech = () => {
     setIsLoading(false);
   }, []);
 
-  const speakNative = useCallback((cleanText: string, langCode: string, speed: string): Promise<void> => {
+  const speakNativeWeb = useCallback((cleanText: string, langCode: string, speed: string): Promise<void> => {
     return new Promise((resolve) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         setIsSpeaking(false);
@@ -204,11 +206,9 @@ export const useTextToSpeech = () => {
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = langCode || "tr-TR";
         
-        // Speed parsing "+20%" -> 1.15, "+35%" -> 1.35
         const rateNum = speed === "+35%" ? 1.35 : speed === "+20%" ? 1.15 : 1.0;
         utterance.rate = rateNum;
 
-        // Try to select matching voice for language
         const voices = window.speechSynthesis.getVoices();
         if (voices && voices.length > 0) {
           const langPrefix = langCode.slice(0, 2).toLowerCase();
@@ -253,60 +253,73 @@ export const useTextToSpeech = () => {
     const voice = getVoiceDetails(overrideVoiceId || selectedVoiceId);
     const speedParam = overrideSpeed || speakingSpeed;
 
-    try {
-      let audioSuccess = false;
+    // 1. Android & iOS native platform: Use Android OS TextToSpeech Engine directly
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await NativeTTS.stop();
+        setIsSpeaking(true);
+        setIsLoading(false);
 
-      // Only attempt /api/tts when running in dev/preview server environment
-      const isDevOrPreview = typeof window !== "undefined" && (window.location.port === "3000" || window.location.port === "5173" || window.location.port === "8080");
+        await NativeTTS.speak({
+          text: cleanText,
+          lang: voice.langCode || "tr-TR",
+          rate: speedParam === "+35%" ? 1.35 : speedParam === "+20%" ? 1.15 : 1.0,
+          category: "playback",
+        });
 
-      if (isDevOrPreview) {
-        try {
-          const url = `/api/tts?voice=${encodeURIComponent(voice.edgeVoice)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(speedParam)}`;
-          const response = await fetch(url);
-          
-          if (response.ok) {
-            const audioBlob = await response.blob();
-            const blobUrl = URL.createObjectURL(audioBlob);
-
-            const audio = new Audio(blobUrl);
-            audioRef.current = audio;
-
-            audio.onplay = () => {
-              setIsSpeaking(true);
-              setIsLoading(false);
-            };
-
-            audio.onended = () => {
-              setIsSpeaking(false);
-              setIsLoading(false);
-              URL.revokeObjectURL(blobUrl);
-              audioRef.current = null;
-            };
-
-            audio.onerror = () => {
-              setIsSpeaking(false);
-              setIsLoading(false);
-              URL.revokeObjectURL(blobUrl);
-              audioRef.current = null;
-            };
-
-            await audio.play();
-            audioSuccess = true;
-          }
-        } catch (fetchErr) {
-          console.warn("Dev TTS endpoint failed, falling back to native TTS:", fetchErr);
-        }
+        setIsSpeaking(false);
+        setIsLoading(false);
+        return;
+      } catch (nativeErr) {
+        console.warn("NativeTTS error, falling back to Web Speech:", nativeErr);
       }
-
-      // Fallback for mobile APK / production web: Native Device SpeechSynthesis
-      if (!audioSuccess) {
-        await speakNative(cleanText, voice.langCode, speedParam);
-      }
-    } catch (err) {
-      console.error("Failed to play speech, using device TTS fallback:", err);
-      await speakNative(cleanText, voice.langCode, speedParam);
     }
-  }, [selectedVoiceId, speakingSpeed, getVoiceDetails, stop, speakNative]);
+
+    // 2. Web Dev/Preview server: Use Neural Edge TTS via /api/tts proxy if reachable
+    const isDevOrPreview = typeof window !== "undefined" && (window.location.port === "3000" || window.location.port === "5173" || window.location.port === "8080");
+
+    if (isDevOrPreview) {
+      try {
+        const url = `/api/tts?voice=${encodeURIComponent(voice.edgeVoice)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(speedParam)}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          const blobUrl = URL.createObjectURL(audioBlob);
+
+          const audio = new Audio(blobUrl);
+          audioRef.current = audio;
+
+          audio.onplay = () => {
+            setIsSpeaking(true);
+            setIsLoading(false);
+          };
+
+          audio.onended = () => {
+            setIsSpeaking(false);
+            setIsLoading(false);
+            URL.revokeObjectURL(blobUrl);
+            audioRef.current = null;
+          };
+
+          audio.onerror = () => {
+            setIsSpeaking(false);
+            setIsLoading(false);
+            URL.revokeObjectURL(blobUrl);
+            audioRef.current = null;
+          };
+
+          await audio.play();
+          return;
+        }
+      } catch (fetchErr) {
+        console.warn("Dev TTS endpoint failed, falling back to native TTS:", fetchErr);
+      }
+    }
+
+    // 3. Web browsers general fallback: Web SpeechSynthesis
+    await speakNativeWeb(cleanText, voice.langCode, speedParam);
+  }, [selectedVoiceId, speakingSpeed, getVoiceDetails, stop, speakNativeWeb]);
 
   return {
     speak,

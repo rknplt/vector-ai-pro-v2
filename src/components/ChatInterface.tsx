@@ -56,6 +56,8 @@ import { useImageGeneration } from "@/hooks/useImageGeneration";
 import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useLanguage, languageList, type Language } from "@/contexts/LanguageContext";
 import * as XLSX from "xlsx";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition as NativeSpeechRecognition } from "@capacitor-community/speech-recognition";
 
 interface ChatInterfaceProps {
   fullScreen?: boolean;
@@ -114,10 +116,40 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   } = useTextToSpeech();
 
   const handleWakeWordDetected = useCallback(() => {
-    toast({ title: "Hey Vector!", description: t("chat.listening") });
+    toast({ title: "Hey Vector!", description: t("chat.listening") || "Dinliyorum..." });
     if (isSpeaking) stop();
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.22);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.22);
+      }
+    } catch {
+      /* ignore */
+    }
     startListening();
-  }, [isSpeaking, stop, startListening]);
+  }, [isSpeaking, stop, startListening, t]);
+
+  // Request native microphone permissions proactively on mobile app launch
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      NativeSpeechRecognition.checkPermissions().then((status) => {
+        if (status.speechRecognition !== "granted") {
+          NativeSpeechRecognition.requestPermissions().catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   const {
     isWakeWordEnabled,

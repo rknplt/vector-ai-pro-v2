@@ -40,7 +40,7 @@ jobs:
 
       - name: Install Capacitor CLI & Android
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/speech-recognition --legacy-peer-deps
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/speech-recognition @capacitor-community/text-to-speech --legacy-peer-deps
 
       - name: Initialize Android Project
         run: |
@@ -138,16 +138,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.3-release
-          name: "Vector AI Pro v2.5.3 (Mobile Voice Engine, Wake Word & Drive Mode Fix)"
+          tag_name: v2.5.4-release
+          name: "Vector AI Pro v2.5.4 (Native Android TTS & Persistent Wake Word)"
           body: |
-            ## Vector AI Pro v2.5.3 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.4 Sürümü Hazır! 🚀
             
-            - 🎙️ **Mobil Asistan Sesleri & TTS Desteği:** Android cihazlarda yerel Google Text-to-Speech ve cihaz ses sentezleyicisi entegre edildi; asistan sesleri ve cevap okumaları artık mobilde eksiksiz çalışıyor.
-            - 🗣️ **Mobil "Hey Vector" Sesli Uyanma (Wake Word):** Android yerel ses tanıma servisi (Google Speech Services) ve mikrofon izinleri entegre edildi. "Hey Vector" veya "Vector" denildiğinde telefon otomatik uyanıp sizi dinliyor.
-            - 🚗 **Tam Çalışan Sürüş Modu:** Sürüş modu açıldığında ekran OLED siyah moduna geçer, uyanık kalır, "Vektör" seslenişinizi bekler ve yanıtları sesli olarak otomatik okur.
-            - 📱 **Mobil Üst Bar & Buton Düzeni:** Mobilde dik kullanımda buton taşma sorunu giderildi, tüm kontroller tam sığdırıldı.
-            - 🔒 **Mobil Admin Panel Erişimi:** Mobil uygulama üzerinden admin paneline yetkilendirme doğrulaması sağlandı.
+            - 🎙️ **Yerel Android Ses Motoru (Google TTS):** `@capacitor-community/text-to-speech` ile Android işletim sisteminin native ses motoru bağlandı. Asistan cevapları ve konuşma testleri mobilde yüksek sesle ve net biçimde çalışır.
+            - 🗣️ **Kesintisiz "Hey Vector" Sesli Uyanma:** Android arka plan watchdog sistemi ile ses tanıma hiç kapanmaz, sessizlikte zaman aşımına uğramaz. "Vector" dendiğinde uyanma sesi çalar ve dinlemeye başlar.
+            - 🛡️ **Açılışta Otomatik Mikrofon İzni:** Uygulama ilk açıldığında Android sistem izin penceresi otomatik tetiklenir.
+            - 🚗 **Tam Çalışan Sürüş Modu:** Sürüş modunda ekran uyanık kalır, sürekli Vector komutunuzu bekler ve cevapları sesli okur.
+            - 📱 **Mobil Üst Bar & Buton Düzeni:** Dik kullanımda tüm kontroller ekrana tam sığdırıldı.
           files: |
             dist-assets/vector-ai-pro.apk
         env:
