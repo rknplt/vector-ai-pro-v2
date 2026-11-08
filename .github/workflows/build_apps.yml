@@ -40,7 +40,7 @@ jobs:
 
       - name: Install Capacitor CLI & Android
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor-community/speech-recognition --legacy-peer-deps
 
       - name: Initialize Android Project
         run: |
@@ -52,9 +52,8 @@ jobs:
           # Fix Kotlin duplicate class issues by forcing kotlin-bom
           sed -i 's/dependencies {/dependencies {\n    implementation platform("org.jetbrains.kotlin:kotlin-bom:1.8.22")/' android/app/build.gradle || true
           
-          # Inject permissions into AndroidManifest.xml
+          # Inject permissions and speech recognition queries into AndroidManifest.xml
           python3 -c "
-          import re
           manifest_path = 'android/app/src/main/AndroidManifest.xml'
           with open(manifest_path, 'r') as f:
               content = f.read()
@@ -66,11 +65,50 @@ jobs:
               <uses-permission android:name=\"android.permission.CAMERA\" />
               <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\" />
               <uses-permission android:name=\"android.permission.VIBRATE\" />
+              <uses-permission android:name=\"android.permission.WAKE_LOCK\" />
           '''
-          if '<uses-permission' not in content:
-              content = content.replace('<application', perms + '\n    <application')
+          
+          queries = '''
+              <queries>
+                  <intent>
+                      <action android:name=\"android.speech.RecognitionService\" />
+                  </intent>
+              </queries>
+          '''
+          
+          if 'android.permission.RECORD_AUDIO' not in content:
+              content = content.replace('<application', perms + '\n' + queries + '\n    <application')
               with open(manifest_path, 'w') as f:
                   f.write(content)
+          "
+          
+          # Configure MainActivity to allow audio autoplay without user gesture for assistant & drive mode
+          python3 -c "
+          main_act = 'android/app/src/main/java/com/vectorai/pro/MainActivity.java'
+          code = '''package com.vectorai.pro;
+
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        try {
+            if (this.bridge != null && this.bridge.getWebView() != null) {
+                WebSettings settings = this.bridge.getWebView().getSettings();
+                settings.setMediaPlaybackRequiresUserGesture(false);
+                settings.setJavaScriptCanOpenWindowsAutomatically(true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+'''
+          with open(main_act, 'w') as f:
+              f.write(code)
           "
           
           npx cap sync android
@@ -101,15 +139,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.2-release
-          name: "Vector AI Pro v2.5.2 (Mobile Header & Admin Access Fix)"
+          tag_name: v2.5.3-release
+          name: "Vector AI Pro v2.5.3 (Mobile Voice Engine, Wake Word & Drive Mode Fix)"
           body: |
-            ## Vector AI Pro v2.5.2 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.3 Sürümü Hazır! 🚀
             
-            - 📱 **Mobil Üst Bar & Buton Düzeni:** Mobilde dik kullanımda sağdaki ses/ayarlar/menü butonlarının ekrandan taşma sorunu giderildi, tüm kontroller tam sığdırıldı.
-            - 🔒 **Mobil Admin Panel Erişimi:** Mobil uygulamada admin paneline girişte yaşanan yetki ve CORS kısıtlamaları giderildi.
-            - 💬 **Tam Ekran Sohbet:** Giriş yapıldığında doğrudan tam ekran modern sohbet arayüzü.
-            - 🤖 **Android APK:** Android 8.0 ve tüm yeni sürümlerle tam uyumlu.
+            - 🎙️ **Mobil Asistan Sesleri & TTS Desteği:** Android cihazlarda yerel Google Text-to-Speech ve cihaz ses sentezleyicisi entegre edildi; asistan sesleri ve cevap okumaları artık mobilde eksiksiz çalışıyor.
+            - 🗣️ **Mobil "Hey Vector" Sesli Uyanma (Wake Word):** Android yerel ses tanıma servisi (Google Speech Services) ve mikrofon izinleri entegre edildi. "Hey Vector" veya "Vector" denildiğinde telefon otomatik uyanıp sizi dinliyor.
+            - 🚗 **Tam Çalışan Sürüş Modu:** Sürüş modu açıldığında ekran OLED siyah moduna geçer, uyanık kalır, "Vektör" seslenişinizi bekler ve yanıtları sesli olarak otomatik okur.
+            - 📱 **Mobil Üst Bar & Buton Düzeni:** Mobilde dik kullanımda buton taşma sorunu giderildi, tüm kontroller tam sığdırıldı.
+            - 🔒 **Mobil Admin Panel Erişimi:** Mobil uygulama üzerinden admin paneline yetkilendirme doğrulaması sağlandı.
           files: |
             dist-assets/vector-ai-pro.apk
         env:

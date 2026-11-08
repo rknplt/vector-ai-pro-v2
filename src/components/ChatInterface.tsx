@@ -77,7 +77,9 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   const [chatMode, setChatMode] = useState<ChatMode>('general');
   const { messages, isLoading, isLoadingHistory, sendMessage, clearHistory, addMessage } = useChat(activeConversationId, chatMode, t("chat.welcome"), language);
   const [input, setInput] = useState("");
-  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    return localStorage.getItem("vector-auto-speak") === "true";
+  });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<{ type: string; data: string; name: string } | null>(null);
@@ -134,6 +136,7 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
 
   useEffect(() => {
     if (isDriveMode) {
+      setAutoSpeak(true);
       if (!isWakeWordEnabled) {
         enableWakeWord();
       }
@@ -406,7 +409,9 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
 
   const toggleAutoSpeak = () => {
     if (isSpeaking) stop();
-    setAutoSpeak(!autoSpeak);
+    const next = !autoSpeak;
+    setAutoSpeak(next);
+    localStorage.setItem("vector-auto-speak", String(next));
   };
 
   const handleImageGeneration = async () => {

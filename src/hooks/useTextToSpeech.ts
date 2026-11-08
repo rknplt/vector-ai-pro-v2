@@ -179,8 +179,67 @@ export const useTextToSpeech = () => {
       audioRef.current.currentTime = 0;
       audioRef.current = null;
     }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore */
+      }
+    }
     setIsSpeaking(false);
     setIsLoading(false);
+  }, []);
+
+  const speakNative = useCallback((cleanText: string, langCode: string, speed: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        setIsSpeaking(false);
+        setIsLoading(false);
+        resolve();
+        return;
+      }
+
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = langCode || "tr-TR";
+        
+        // Speed parsing "+20%" -> 1.15, "+35%" -> 1.35
+        const rateNum = speed === "+35%" ? 1.35 : speed === "+20%" ? 1.15 : 1.0;
+        utterance.rate = rateNum;
+
+        // Try to select matching voice for language
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+          const langPrefix = langCode.slice(0, 2).toLowerCase();
+          const match = voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix));
+          if (match) utterance.voice = match;
+        }
+
+        utterance.onstart = () => {
+          setIsSpeaking(true);
+          setIsLoading(false);
+        };
+        utterance.onend = () => {
+          setIsSpeaking(false);
+          setIsLoading(false);
+          resolve();
+        };
+        utterance.onerror = (e) => {
+          console.warn("speechSynthesis utterance event:", e);
+          setIsSpeaking(false);
+          setIsLoading(false);
+          resolve();
+        };
+
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.error("speechSynthesis invocation failed:", err);
+        setIsSpeaking(false);
+        setIsLoading(false);
+        resolve();
+      }
+    });
   }, []);
 
   const speak = useCallback(async (text: string, overrideVoiceId?: string, overrideSpeed?: string) => {
@@ -195,45 +254,59 @@ export const useTextToSpeech = () => {
     const speedParam = overrideSpeed || speakingSpeed;
 
     try {
-      const url = `/api/tts?voice=${encodeURIComponent(voice.edgeVoice)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(speedParam)}`;
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`TTS server error: ${response.status}`);
+      let audioSuccess = false;
+
+      // Only attempt /api/tts when running in dev/preview server environment
+      const isDevOrPreview = typeof window !== "undefined" && (window.location.port === "3000" || window.location.port === "5173" || window.location.port === "8080");
+
+      if (isDevOrPreview) {
+        try {
+          const url = `/api/tts?voice=${encodeURIComponent(voice.edgeVoice)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(speedParam)}`;
+          const response = await fetch(url);
+          
+          if (response.ok) {
+            const audioBlob = await response.blob();
+            const blobUrl = URL.createObjectURL(audioBlob);
+
+            const audio = new Audio(blobUrl);
+            audioRef.current = audio;
+
+            audio.onplay = () => {
+              setIsSpeaking(true);
+              setIsLoading(false);
+            };
+
+            audio.onended = () => {
+              setIsSpeaking(false);
+              setIsLoading(false);
+              URL.revokeObjectURL(blobUrl);
+              audioRef.current = null;
+            };
+
+            audio.onerror = () => {
+              setIsSpeaking(false);
+              setIsLoading(false);
+              URL.revokeObjectURL(blobUrl);
+              audioRef.current = null;
+            };
+
+            await audio.play();
+            audioSuccess = true;
+          }
+        } catch (fetchErr) {
+          console.warn("Dev TTS endpoint failed, falling back to native TTS:", fetchErr);
+        }
       }
 
-      const audioBlob = await response.blob();
-      const blobUrl = URL.createObjectURL(audioBlob);
-
-      const audio = new Audio(blobUrl);
-      audioRef.current = audio;
-
-      audio.onplay = () => {
-        setIsSpeaking(true);
-        setIsLoading(false);
-      };
-
-      audio.onended = () => {
-        setIsSpeaking(false);
-        setIsLoading(false);
-        URL.revokeObjectURL(blobUrl);
-        audioRef.current = null;
-      };
-
-      audio.onerror = () => {
-        setIsSpeaking(false);
-        setIsLoading(false);
-        URL.revokeObjectURL(blobUrl);
-        audioRef.current = null;
-      };
-
-      await audio.play();
+      // Fallback for mobile APK / production web: Native Device SpeechSynthesis
+      if (!audioSuccess) {
+        await speakNative(cleanText, voice.langCode, speedParam);
+      }
     } catch (err) {
-      console.error("Failed to generate/play Neural speech:", err);
-      setIsSpeaking(false);
-      setIsLoading(false);
+      console.error("Failed to play speech, using device TTS fallback:", err);
+      await speakNative(cleanText, voice.langCode, speedParam);
     }
-  }, [selectedVoiceId, speakingSpeed, getVoiceDetails, stop]);
+  }, [selectedVoiceId, speakingSpeed, getVoiceDetails, stop, speakNative]);
 
   return {
     speak,
