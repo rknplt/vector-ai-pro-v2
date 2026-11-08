@@ -58,26 +58,26 @@ jobs:
           with open(manifest_path, 'r') as f:
               content = f.read()
           
-          perms = '''
-              <uses-permission android:name=\"android.permission.INTERNET\" />
-              <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />
-              <uses-permission android:name=\"android.permission.RECORD_AUDIO\" />
-              <uses-permission android:name=\"android.permission.CAMERA\" />
-              <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\" />
-              <uses-permission android:name=\"android.permission.VIBRATE\" />
-              <uses-permission android:name=\"android.permission.WAKE_LOCK\" />
-          '''
+          perms = (
+              '    <uses-permission android:name=\"android.permission.INTERNET\" />\n'
+              '    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\" />\n'
+              '    <uses-permission android:name=\"android.permission.RECORD_AUDIO\" />\n'
+              '    <uses-permission android:name=\"android.permission.CAMERA\" />\n'
+              '    <uses-permission android:name=\"android.permission.MODIFY_AUDIO_SETTINGS\" />\n'
+              '    <uses-permission android:name=\"android.permission.VIBRATE\" />\n'
+              '    <uses-permission android:name=\"android.permission.WAKE_LOCK\" />\n'
+          )
           
-          queries = '''
-              <queries>
-                  <intent>
-                      <action android:name=\"android.speech.RecognitionService\" />
-                  </intent>
-              </queries>
-          '''
+          queries = (
+              '    <queries>\n'
+              '        <intent>\n'
+              '            <action android:name=\"android.speech.RecognitionService\" />\n'
+              '        </intent>\n'
+              '    </queries>\n'
+          )
           
           if 'android.permission.RECORD_AUDIO' not in content:
-              content = content.replace('<application', perms + '\n' + queries + '\n    <application')
+              content = content.replace('<application', perms + queries + '    <application')
               with open(manifest_path, 'w') as f:
                   f.write(content)
           "
@@ -85,28 +85,27 @@ jobs:
           # Configure MainActivity to allow audio autoplay without user gesture for assistant & drive mode
           python3 -c "
           main_act = 'android/app/src/main/java/com/vectorai/pro/MainActivity.java'
-          code = '''package com.vectorai.pro;
-
-import android.os.Bundle;
-import android.webkit.WebSettings;
-import com.getcapacitor.BridgeActivity;
-
-public class MainActivity extends BridgeActivity {
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        try {
-            if (this.bridge != null && this.bridge.getWebView() != null) {
-                WebSettings settings = this.bridge.getWebView().getSettings();
-                settings.setMediaPlaybackRequiresUserGesture(false);
-                settings.setJavaScriptCanOpenWindowsAutomatically(true);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-'''
+          code = (
+              'package com.vectorai.pro;\n\n'
+              'import android.os.Bundle;\n'
+              'import android.webkit.WebSettings;\n'
+              'import com.getcapacitor.BridgeActivity;\n\n'
+              'public class MainActivity extends BridgeActivity {\n'
+              '    @Override\n'
+              '    public void onCreate(Bundle savedInstanceState) {\n'
+              '        super.onCreate(savedInstanceState);\n'
+              '        try {\n'
+              '            if (this.bridge != null && this.bridge.getWebView() != null) {\n'
+              '                WebSettings settings = this.bridge.getWebView().getSettings();\n'
+              '                settings.setMediaPlaybackRequiresUserGesture(false);\n'
+              '                settings.setJavaScriptCanOpenWindowsAutomatically(true);\n'
+              '            }\n'
+              '        } catch (Exception e) {\n'
+              '            e.printStackTrace();\n'
+              '        }\n'
+              '    }\n'
+              '}\n'
+          )
           with open(main_act, 'w') as f:
               f.write(code)
           "
