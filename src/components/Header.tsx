@@ -12,7 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const Header = () => {
+interface HeaderProps {
+  compact?: boolean;
+}
+
+const Header = ({ compact = false }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAdmin, userPlan, signOut, isLoading } = useAuth();
@@ -65,21 +69,23 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-5 2xl:gap-8">
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-              {t("nav.features")}
-            </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-              {t("nav.pricing")}
-            </a>
-            <a href="#chat" className="text-muted-foreground hover:text-foreground transition-colors">
-              {t("nav.assistant")}
-            </a>
-            <a href="/install" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-              <Download className="w-4 h-4" />
-              {t("nav.download")}
-            </a>
-          </nav>
+          {!compact && (
+            <nav className="hidden lg:flex items-center gap-5 2xl:gap-8">
+              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
+                {t("nav.features")}
+              </a>
+              <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+                {t("nav.pricing")}
+              </a>
+              <a href="#chat" className="text-muted-foreground hover:text-foreground transition-colors">
+                {t("nav.assistant")}
+              </a>
+              <a href="/install" className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                <Download className="w-4 h-4" />
+                {t("nav.download")}
+              </a>
+            </nav>
+          )}
 
           {/* CTA Buttons */}
           <div className="hidden xl:flex items-center gap-2 2xl:gap-3">

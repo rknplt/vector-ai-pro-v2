@@ -57,7 +57,11 @@ import { useVoiceCommands } from "@/hooks/useVoiceCommands";
 import { useLanguage, languageList, type Language } from "@/contexts/LanguageContext";
 import * as XLSX from "xlsx";
 
-const ChatInterface = () => {
+interface ChatInterfaceProps {
+  fullScreen?: boolean;
+}
+
+const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   const { userPlan } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const {
@@ -432,19 +436,24 @@ const ChatInterface = () => {
   const handleTemplateSelect = (prompt: string) => { setInput(prompt); };
 
   return (
-    <section id="chat" className="py-12 md:py-24 relative">
-      <div className="container mx-auto px-2 md:px-4">
-        <div className="text-center mb-6 md:mb-12">
-          <h2 className="text-2xl md:text-5xl font-bold mb-2 md:mb-4">
-            {t("chat.title")} <span className="gradient-text">{t("chat.titleHighlight")}</span>
-          </h2>
-          <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
-            {t("chat.subtitle")}
-          </p>
-        </div>
+    <section id="chat" className={fullScreen ? "h-full w-full flex flex-col flex-1 overflow-hidden" : "py-12 md:py-24 relative"}>
+      <div className={fullScreen ? "h-full w-full flex flex-col flex-1 overflow-hidden" : "container mx-auto px-2 md:px-4"}>
+        {!fullScreen && (
+          <div className="text-center mb-6 md:mb-12">
+            <h2 className="text-2xl md:text-5xl font-bold mb-2 md:mb-4">
+              {t("chat.title")} <span className="gradient-text">{t("chat.titleHighlight")}</span>
+            </h2>
+            <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto">
+              {t("chat.subtitle")}
+            </p>
+          </div>
+        )}
 
-        <div className="max-w-5xl mx-auto">
-          <div className="glass-card rounded-2xl md:rounded-3xl overflow-hidden border border-border/30 flex flex-col md:flex-row h-[70vh] md:h-[75vh]">
+        <div className={fullScreen ? "h-full w-full flex flex-col flex-1 overflow-hidden" : "max-w-5xl mx-auto"}>
+          <div className={fullScreen 
+            ? "glass-card border-0 rounded-none flex flex-col md:flex-row h-full w-full flex-1 overflow-hidden" 
+            : "glass-card rounded-2xl md:rounded-3xl overflow-hidden border border-border/30 flex flex-col md:flex-row h-[70vh] md:h-[75vh]"
+          }>
             {/* Mobile Sidebar Overlay */}
             {showMobileSidebar && (
               <div className="fixed inset-0 z-50 md:hidden">
