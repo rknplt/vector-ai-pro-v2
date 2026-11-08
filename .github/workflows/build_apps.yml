@@ -74,12 +74,20 @@ jobs:
           "
           
           npx cap sync android
+          
+          # Use bin distribution instead of all (35MB vs 160MB) for fast and reliable download
+          sed -i 's/-all.zip/-bin.zip/' android/gradle/wrapper/gradle-wrapper.properties || true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build Android Debug APK
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.internal.http.socketTimeout=120000 -Dorg.gradle.internal.http.connectionTimeout=120000"
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: Prepare APK Asset
         run: |
