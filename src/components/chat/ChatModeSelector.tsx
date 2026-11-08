@@ -32,7 +32,7 @@ const ChatModeSelector = ({ value, onChange, isPlusUser }: ChatModeSelectorProps
       if (mode?.plusOnly && !isPlusUser) return;
       onChange(v as ChatMode);
     }}>
-      <SelectTrigger className="w-[155px] h-7 text-xs border-border/30 bg-secondary/50">
+      <SelectTrigger className="w-[105px] sm:w-[155px] h-7 text-xs border-border/30 bg-secondary/50 px-2 shrink-0">
         <div className="flex items-center gap-1.5 truncate">
           <currentMode.icon className="w-3.5 h-3.5 text-primary shrink-0" />
           <SelectValue />

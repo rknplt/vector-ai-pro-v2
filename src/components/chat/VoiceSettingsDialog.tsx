@@ -87,7 +87,7 @@ const VoiceSettingsDialog = ({
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-muted-foreground hover:text-foreground"
+          className="gap-1.5 text-muted-foreground hover:text-foreground h-8 w-8 sm:w-auto p-0 sm:px-2 shrink-0"
           title={t("voice.settingsTitle")}
         >
           <Settings className="w-4 h-4" />

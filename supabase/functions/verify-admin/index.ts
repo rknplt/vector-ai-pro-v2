@@ -6,7 +6,8 @@ const ALLOWED_ORIGIN_PATTERNS = [
   /^https:\/\/[a-z0-9-]+\.lovable\.app$/,
   /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
   /^https:\/\/[a-z0-9-]+\.sandbox\.lovable\.dev$/,
-  /^http:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^capacitor:\/\/localhost$/,
 ];
 
 function getCorsHeaders(req: Request): Record<string, string> {

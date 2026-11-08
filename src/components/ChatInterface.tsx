@@ -488,50 +488,66 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col min-w-0">
               {/* Chat Header */}
-              <div className="flex items-center justify-between p-2 md:p-4 border-b border-border/30">
-                <div className="flex items-center gap-2 md:gap-3">
+              <div className="flex items-center justify-between p-2 md:p-3 border-b border-border/30 gap-1 sm:gap-2 min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden h-8 w-8 text-muted-foreground"
+                    className="md:hidden h-8 w-8 shrink-0 text-muted-foreground"
                     onClick={() => setShowMobileSidebar(true)}
                     title={t("sidebar.chats")}
                   >
                     <Menu className="w-5 h-5" />
                   </Button>
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 text-primary-foreground" />
+                  <div className="relative shrink-0">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" />
                     </div>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-success border-2 border-card" />
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-success border-2 border-card" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold">Vector</h3>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="hidden md:block shrink-0">
+                    <h3 className="font-semibold text-sm leading-tight">Vector</h3>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
                       {isSpeaking ? t("chat.speaking") : t("chat.active")}
                     </p>
                   </div>
                   {/* Mode Selector */}
-                  <ChatModeSelector value={chatMode} onChange={setChatMode} isPlusUser={userPlan === "plus"} />
+                  <div className="shrink-0">
+                    <ChatModeSelector value={chatMode} onChange={setChatMode} isPlusUser={userPlan === "plus"} />
+                  </div>
                   {/* Agent Team Dashboard */}
-                  <AgentTeamDashboard onDispatchTask={(prompt) => { setChatMode('agent-team'); sendMessage(prompt, undefined, undefined, undefined, undefined, 'agent-team'); }} />
+                  <div className="shrink-0">
+                    <AgentTeamDashboard onDispatchTask={(prompt) => { setChatMode('agent-team'); sendMessage(prompt, undefined, undefined, undefined, undefined, 'agent-team'); }} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                   {/* Auto-speak toggle - always visible */}
                   <Button
                     variant={autoSpeak ? "default" : "ghost"}
                     size="icon"
                     onClick={toggleAutoSpeak}
-                    className="h-8 w-8"
+                    className="h-8 w-8 shrink-0"
                     title={autoSpeak ? t("chat.autoSpeakOn") : t("chat.autoSpeakOff")}
                   >
                     {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                   </Button>
 
+                  {/* Voice Settings Dialog */}
+                  <div className="shrink-0">
+                    <VoiceSettingsDialog
+                      selectedVoiceId={selectedVoiceId}
+                      onSelectVoice={selectVoice}
+                      onTestVoice={(text, vId, spd) => speak(text, vId, spd)}
+                      speakingSpeed={speakingSpeed}
+                      onChangeSpeed={changeSpeed}
+                      isLoading={isTTSLoading}
+                    />
+                  </div>
+
                   {/* More options dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title={t("chat.more") || "More"}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground" title={t("chat.more") || "More"}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                       </Button>
                     </DropdownMenuTrigger>
@@ -568,41 +584,34 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <VoiceSettingsDialog
-                    selectedVoiceId={selectedVoiceId}
-                    onSelectVoice={selectVoice}
-                    onTestVoice={(text, vId, spd) => speak(text, vId, spd)}
-                    speakingSpeed={speakingSpeed}
-                    onChangeSpeed={changeSpeed}
-                    isLoading={isTTSLoading}
-                  />
-
-                  {/* Quick Language Selector */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1.5 text-xs text-muted-foreground hover:text-foreground h-8 px-2"
-                        title={t("chat.changeLanguage") || "Change Language"}
-                      >
-                        <span>{languageList.find(l => l.code === language)?.flag || "🌐"}</span>
-                        <span className="hidden sm:inline uppercase text-[11px] font-semibold">{language}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44 max-h-72 overflow-y-auto">
-                      {languageList.map((l) => (
-                        <DropdownMenuItem
-                          key={l.code}
-                          onClick={() => setLanguage(l.code)}
-                          className={`gap-2 text-xs cursor-pointer ${language === l.code ? "bg-primary/10 font-bold text-primary" : ""}`}
+                  {/* Quick Language Selector (hidden on mobile since Header already has it) */}
+                  <div className="hidden sm:inline-flex shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1.5 text-xs text-muted-foreground hover:text-foreground h-8 px-2"
+                          title={t("chat.changeLanguage") || "Change Language"}
                         >
-                          <span>{l.flag}</span>
-                          <span>{l.label}</span>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                          <span>{languageList.find(l => l.code === language)?.flag || "🌐"}</span>
+                          <span className="hidden md:inline uppercase text-[11px] font-semibold">{language}</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44 max-h-72 overflow-y-auto">
+                        {languageList.map((l) => (
+                          <DropdownMenuItem
+                            key={l.code}
+                            onClick={() => setLanguage(l.code)}
+                            className={`gap-2 text-xs cursor-pointer ${language === l.code ? "bg-primary/10 font-bold text-primary" : ""}`}
+                          >
+                            <span>{l.flag}</span>
+                            <span>{l.label}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </div>
 

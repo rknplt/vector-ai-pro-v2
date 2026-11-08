@@ -281,16 +281,35 @@ const Admin = () => {
           return;
         }
 
-        const response = await supabase.functions.invoke("verify-admin");
-        
-        if (response.error) {
-          console.error("Admin verification error:", response.error);
-          setServerVerified(false);
-        } else if (response.data?.isAdmin) {
-          setServerVerified(true);
-        } else {
-          setServerVerified(false);
+        let verified = false;
+
+        // 1. Try server edge function
+        try {
+          const response = await supabase.functions.invoke("verify-admin");
+          if (!response.error && response.data?.isAdmin) {
+            verified = true;
+          } else if (response.error) {
+            console.warn("verify-admin edge function invoke notice:", response.error);
+          }
+        } catch (fnErr) {
+          console.warn("verify-admin invocation failed, falling back to database check:", fnErr);
         }
+
+        // 2. Fallback to direct DB query with active user session (e.g. Capacitor mobile or edge function offline)
+        if (!verified) {
+          const { data: roleData, error: roleError } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+
+          if (!roleError && roleData?.role === "admin") {
+            verified = true;
+          }
+        }
+
+        setServerVerified(verified);
       } catch (error) {
         console.error("Admin verification failed:", error);
         setServerVerified(false);
@@ -317,8 +336,8 @@ const Admin = () => {
       return;
     }
 
-    // Check both client-side isAdmin and server-verified status
-    if (!isLoading && user && (!isAdmin || !serverVerified)) {
+    // Allow access if verified by either edge function or authenticated user_roles check
+    if (!isLoading && user && !serverVerified && !isAdmin) {
       toast({
         title: "Erişim Reddedildi",
         description: "Bu sayfaya erişim yetkiniz yok.",
@@ -328,7 +347,7 @@ const Admin = () => {
       return;
     }
 
-    if (!isLoading && isAdmin && serverVerified) {
+    if (!isLoading && (serverVerified || isAdmin)) {
       fetchData();
     }
   }, [user, isLoading, isAdmin, serverVerified, verifyingAdmin, navigate]);

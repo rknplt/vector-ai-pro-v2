@@ -96,15 +96,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.1-release
-          name: "Vector AI Pro v2.5.1 (Full-Screen Mobile Chat)"
+          tag_name: v2.5.2-release
+          name: "Vector AI Pro v2.5.2 (Mobile Header & Admin Access Fix)"
           body: |
-            ## Vector AI Pro v2.5.1 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.2 Sürümü Hazır! 🚀
             
-            - 💬 **Tam Ekran Sohbet:** Giriş yapıldığında doğrudan tam ekran modern sohbet arayüzü (ChatGPT/Claude tarzı).
-            - 🤖 **Android APK:** Android 8.0 ve tüm yeni sürümlerle uyumlu.
-            - 🌐 **Canlı Küresel Google Arama:** Anlık döviz, skor ve haber entegrasyonu.
-            - 🎙️ **Sesli Asistan & Ajan Ekibi:** "Hey Vector" sesli uyanma ve 9 kişilik şirket ajanları.
+            - 📱 **Mobil Üst Bar & Buton Düzeni:** Mobilde dik kullanımda sağdaki ses/ayarlar/menü butonlarının ekrandan taşma sorunu giderildi, tüm kontroller tam sığdırıldı.
+            - 🔒 **Mobil Admin Panel Erişimi:** Mobil uygulamada admin paneline girişte yaşanan yetki ve CORS kısıtlamaları giderildi.
+            - 💬 **Tam Ekran Sohbet:** Giriş yapıldığında doğrudan tam ekran modern sohbet arayüzü.
+            - 🤖 **Android APK:** Android 8.0 ve tüm yeni sürümlerle tam uyumlu.
           files: |
             dist-assets/vector-ai-pro.apk
         env:

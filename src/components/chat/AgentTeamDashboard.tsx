@@ -187,12 +187,12 @@ export const AgentTeamDashboard = ({ onDispatchTask }: AgentTeamDashboardProps) 
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary font-medium text-xs h-7"
+          className="gap-1 border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary font-medium text-xs h-7 px-1.5 sm:px-2 shrink-0"
           title={t("agentTeam.modalTitle")}
         >
-          <Crown className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden sm:inline">{t("agentTeam.button")}</span>
-          <Badge variant="secondary" className="px-1 py-0 text-[10px] bg-primary/20 text-primary">
+          <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span className="hidden md:inline">{t("agentTeam.button")}</span>
+          <Badge variant="secondary" className="px-1 py-0 text-[10px] bg-primary/20 text-primary shrink-0">
             {t("agentTeam.badge") || "9 Ajan"}
           </Badge>
         </Button>
