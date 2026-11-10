@@ -262,59 +262,61 @@ export const useTextToSpeech = () => {
     const voice = getVoiceDetails(overrideVoiceId || selectedVoiceId);
     const speedParam = overrideSpeed || speakingSpeed;
 
-    // 1. Android & iOS native platform: Use Android OS TextToSpeech Engine directly
+    const isLocalServer = typeof window !== "undefined" && (window.location.port === "3000" || window.location.port === "5173" || window.location.port === "8080");
+    const TTS_SERVER = isLocalServer ? "" : "https://ai-sirket-ajanlari.onrender.com";
+
+    // 1. Primary: High-Definition Microsoft Neural Studio Voices (Emel, Ahmet, Jenny, Guy, etc.)
+    try {
+      const url = `${TTS_SERVER}/api/tts?voice=${encodeURIComponent(voice.edgeVoice)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(speedParam)}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const blobUrl = URL.createObjectURL(audioBlob);
+
+        const audio = new Audio(blobUrl);
+        audioRef.current = audio;
+
+        audio.onplay = () => {
+          setIsSpeaking(true);
+          setIsLoading(false);
+        };
+
+        audio.onended = () => {
+          setIsSpeaking(false);
+          setIsLoading(false);
+          URL.revokeObjectURL(blobUrl);
+          audioRef.current = null;
+        };
+
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          setIsLoading(false);
+          URL.revokeObjectURL(blobUrl);
+          audioRef.current = null;
+        };
+
+        await audio.play();
+        return;
+      }
+    } catch (edgeErr) {
+      console.warn("Cloud Neural Edge TTS stream failed, using offline fallback:", edgeErr);
+    }
+
+    // 2. Offline Fallback on Native Mobile (Android / iOS)
     if (Capacitor.isNativePlatform()) {
       try {
         await NativeTTS.stop();
         setIsSpeaking(true);
         setIsLoading(false);
 
-        // Find best matching voice on device
-        let selectedVoiceIndex: number | undefined = undefined;
-        try {
-          const supported = await NativeTTS.getSupportedVoices();
-          const voices = supported.voices || [];
-          const langPrefix = voice.lang.toLowerCase();
-
-          const matchingVoices = voices
-            .map((v, idx) => ({ voice: v, index: idx }))
-            .filter(({ voice: v }) => {
-              const vLang = (v.lang || "").replace("_", "-").toLowerCase();
-              return vLang.startsWith(langPrefix) || vLang.includes(langPrefix);
-            });
-
-          if (matchingVoices.length > 0) {
-            const isFemale = voice.gender === "female";
-            const targetKeywords = isFemale
-              ? ["female", "woman", "kadın", "girl", "#female", "dfz"]
-              : ["male", "man", "erkek", "boy", "#male", "cfs", "efz"];
-
-            const keywordMatch = matchingVoices.find(({ voice: v }) => {
-              const str = `${v.name} ${v.voiceURI}`.toLowerCase();
-              return targetKeywords.some(kw => str.includes(kw));
-            });
-
-            if (keywordMatch) {
-              selectedVoiceIndex = keywordMatch.index;
-            } else if (matchingVoices.length > 1) {
-              // Usually index 0 and 1 are different genders in Android TTS
-              selectedVoiceIndex = isFemale ? matchingVoices[0].index : matchingVoices[1].index;
-            } else {
-              selectedVoiceIndex = matchingVoices[0].index;
-            }
-          }
-        } catch (voiceQueryErr) {
-          console.warn("Could not query supported native voices:", voiceQueryErr);
-        }
-
-        const pitchVal = voice.gender === "female" ? 1.18 : 0.88;
+        const pitchVal = voice.gender === "female" ? 1.35 : 0.72;
 
         await NativeTTS.speak({
           text: cleanText,
           lang: voice.langCode || "tr-TR",
           rate: speedParam === "+35%" ? 1.35 : speedParam === "+20%" ? 1.15 : 1.0,
           pitch: pitchVal,
-          voice: selectedVoiceIndex,
           category: "playback",
         });
 
@@ -322,49 +324,7 @@ export const useTextToSpeech = () => {
         setIsLoading(false);
         return;
       } catch (nativeErr) {
-        console.warn("NativeTTS error, falling back to Web Speech:", nativeErr);
-      }
-    }
-
-    // 2. Web Dev/Preview server: Use Neural Edge TTS via /api/tts proxy if reachable
-    const isDevOrPreview = typeof window !== "undefined" && (window.location.port === "3000" || window.location.port === "5173" || window.location.port === "8080");
-
-    if (isDevOrPreview) {
-      try {
-        const url = `/api/tts?voice=${encodeURIComponent(voice.edgeVoice)}&text=${encodeURIComponent(cleanText)}&rate=${encodeURIComponent(speedParam)}`;
-        const response = await fetch(url);
-        
-        if (response.ok) {
-          const audioBlob = await response.blob();
-          const blobUrl = URL.createObjectURL(audioBlob);
-
-          const audio = new Audio(blobUrl);
-          audioRef.current = audio;
-
-          audio.onplay = () => {
-            setIsSpeaking(true);
-            setIsLoading(false);
-          };
-
-          audio.onended = () => {
-            setIsSpeaking(false);
-            setIsLoading(false);
-            URL.revokeObjectURL(blobUrl);
-            audioRef.current = null;
-          };
-
-          audio.onerror = () => {
-            setIsSpeaking(false);
-            setIsLoading(false);
-            URL.revokeObjectURL(blobUrl);
-            audioRef.current = null;
-          };
-
-          await audio.play();
-          return;
-        }
-      } catch (fetchErr) {
-        console.warn("Dev TTS endpoint failed, falling back to native TTS:", fetchErr);
+        console.warn("NativeTTS fallback error:", nativeErr);
       }
     }
 

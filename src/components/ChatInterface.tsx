@@ -43,7 +43,6 @@ import { useChat } from "@/hooks/useChat";
 import { useConversations } from "@/hooks/useConversations";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
-import { useWakeWord } from "@/hooks/useWakeWord";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -101,13 +100,10 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   const { generateImage, isGenerating } = useImageGeneration();
   const { processCommand } = useVoiceCommands();
   
-  const { 
-    isListening, 
-    transcript, 
-    startListening, 
-    stopListening, 
-    isSupported: isSpeechSupported 
-  } = useSpeechRecognition(language);
+  const handleWakeWordDetected = useCallback(() => {
+    toast({ title: "Hey Vector!", description: t("chat.listening") || "Seni dinliyorum..." });
+    if (isSpeaking) stop();
+  }, [isSpeaking, stop, t]);
 
   const { 
     speak, stop, isSpeaking, isLoading: isTTSLoading,
@@ -115,30 +111,24 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
     speakingSpeed, changeSpeed,
   } = useTextToSpeech();
 
-  const handleWakeWordDetected = useCallback(() => {
-    toast({ title: "Hey Vector!", description: t("chat.listening") || "Dinliyorum..." });
-    if (isSpeaking) stop();
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
-        gain.gain.setValueAtTime(0.18, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.22);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.22);
-      }
-    } catch {
-      /* ignore */
-    }
-    startListening();
-  }, [isSpeaking, stop, startListening, t]);
+  const { 
+    isListening, 
+    transcript, 
+    startListening, 
+    stopListening, 
+    isSupported: isSpeechSupported,
+    isWakeWordEnabled,
+    isWakeWordListening,
+    enableWakeWord,
+    disableWakeWord,
+    toggleWakeWord,
+  } = useSpeechRecognition({
+    language,
+    isPaused: isSpeaking || isTTSLoading || isLoading,
+    onWakeWordDetected: handleWakeWordDetected,
+  });
+
+  const isWakeWordSupported = isSpeechSupported;
 
   // Request native microphone permissions proactively on mobile app launch
   useEffect(() => {
@@ -150,17 +140,6 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
       }).catch(() => {});
     }
   }, []);
-
-  // Microphones on Android cannot be shared: pause wake word strictly when user is speaking, AI is responding, or TTS is speaking!
-  const isWakeWordPaused = isListening || isSpeaking || isTTSLoading || isLoading;
-
-  const {
-    isWakeWordEnabled,
-    isWakeWordListening,
-    toggleWakeWord,
-    enableWakeWord,
-    isSupported: isWakeWordSupported,
-  } = useWakeWord(handleWakeWordDetected, isWakeWordPaused);
 
   useEffect(() => {
     if (isDriveMode) {

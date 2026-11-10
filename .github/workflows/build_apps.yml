@@ -138,16 +138,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.5-release
-          name: "Vector AI Pro v2.5.5 (Fix Speech Recognition, Drive Mode, Multi-Gender Voices & Multi-Language Sync)"
+          tag_name: v2.5.6-release
+          name: "Vector AI Pro v2.5.6 (Unified Audio Engine, Real Azure Neural TTS & Drive Mode)"
           body: |
-            ## Vector AI Pro v2.5.5 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.6 Sürümü Hazır! 🚀
             
-            - 🎙️ **Kusursuz Ses Tanıma & Uyanma Uyumu:** "Hey Vector" dedikten sonra konuşma tanıma oturumu (Speech Recognition) artık arka plan uyanma bekçisi tarafından kesilmez. Cümlenizi rahatça söyleyebilirsiniz, tamamlandığında mesaj otomatik iletilir.
-            - 🚗 **Tam Çalışan Sürüş Modu:** Sürüş modunda dinleme, AI yanıtı ve sesli okuma döngüsü mükemmel çalışır. "Vector" dediğinizde sizi dinler, cevabı sesli okur ve tekrar sessizce uyanma kelimesini bekler.
-            - 🗣️ **Kadın & Erkek Ses Ayrımı (Pitch & Voice Selection):** Emel (Kadın) ve Ahmet (Erkek) sesleri cihazınızda belirgin şekilde ayırt edilir. Android TTS ses motorunda frekans ve tonlama (pitch) ile kadın/erkek sesleri netleştirildi.
-            - 🌐 **Ses & Sohbet Dili Senkronizasyonu:** Ses ayarlarından dil değiştirildiğinde (İngilizce, Almanca vb.) yapay zeka asistanı artık kesinlikle seçilen dilde yanıt verir. Karşılama mesajı ve konuşma tanıma dili otomatik güncellenir.
-            - 📱 **Mobil Tam Ekran Sohbet:** Dik kullanımda üst ve alt çubuklar tam uyumlu ve temiz.
+            - 🎙️ **Tek ve Birleşik Ses Motoru (Sıfır Kesinti):** "Vector" uyanma kelimesi ile konuşma tanıma tek bir oturumda birleştirildi. Artık oturum kapatılıp açılmaz; "Vector" dediğiniz andan itibaren mikrofon kesintisiz sizi dinler, cümleniz bittiğinde mesaj otomatik gönderilir.
+            - 🗣️ **Gerçek Stüdyo Kalitesinde Kadın & Erkek Sesleri (Microsoft Azure Neural):** Android dahili robot ses motorunun kısıtları aşıldı. Emel (Gerçek kadın sesi) ve Ahmet (Gerçek erkek sesi), Jenny, Guy, Katja, Conrad stüdyo ses kalitesinde canlı konuşur.
+            - 🚗 **Kusursuz Sürüş Modu:** Sürüş modunda "Vector" uyarısı, dinleme ve cevap okuma döngüsü sıfır kesintiyle çalışır.
+            - 🌐 **Dil Senkronizasyonu:** Dil değiştirildiğinde hem AI hem ses motoru anında yeni dile geçer.
           files: |
             dist-assets/vector-ai-pro.apk
         env:
