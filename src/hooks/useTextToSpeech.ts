@@ -192,7 +192,7 @@ export const useTextToSpeech = () => {
     setIsLoading(false);
   }, []);
 
-  const speakNativeWeb = useCallback((cleanText: string, langCode: string, speed: string): Promise<void> => {
+  const speakNativeWeb = useCallback((cleanText: string, langCode: string, speed: string, gender: "female" | "male" = "female"): Promise<void> => {
     return new Promise((resolve) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         setIsSpeaking(false);
@@ -208,12 +208,21 @@ export const useTextToSpeech = () => {
         
         const rateNum = speed === "+35%" ? 1.35 : speed === "+20%" ? 1.15 : 1.0;
         utterance.rate = rateNum;
+        utterance.pitch = gender === "female" ? 1.18 : 0.88;
 
         const voices = window.speechSynthesis.getVoices();
         if (voices && voices.length > 0) {
           const langPrefix = langCode.slice(0, 2).toLowerCase();
-          const match = voices.find(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix));
-          if (match) utterance.voice = match;
+          const matchVoices = voices.filter(v => v.lang.replace('_', '-').toLowerCase().startsWith(langPrefix));
+          if (matchVoices.length > 0) {
+            const isFemale = gender === "female";
+            const targetKeywords = isFemale ? ["female", "woman", "kadın", "girl"] : ["male", "man", "erkek", "boy"];
+            const genderMatch = matchVoices.find(v => {
+              const nameLower = v.name.toLowerCase();
+              return targetKeywords.some(kw => nameLower.includes(kw));
+            });
+            utterance.voice = genderMatch || matchVoices[0];
+          }
         }
 
         utterance.onstart = () => {
@@ -260,10 +269,52 @@ export const useTextToSpeech = () => {
         setIsSpeaking(true);
         setIsLoading(false);
 
+        // Find best matching voice on device
+        let selectedVoiceIndex: number | undefined = undefined;
+        try {
+          const supported = await NativeTTS.getSupportedVoices();
+          const voices = supported.voices || [];
+          const langPrefix = voice.lang.toLowerCase();
+
+          const matchingVoices = voices
+            .map((v, idx) => ({ voice: v, index: idx }))
+            .filter(({ voice: v }) => {
+              const vLang = (v.lang || "").replace("_", "-").toLowerCase();
+              return vLang.startsWith(langPrefix) || vLang.includes(langPrefix);
+            });
+
+          if (matchingVoices.length > 0) {
+            const isFemale = voice.gender === "female";
+            const targetKeywords = isFemale
+              ? ["female", "woman", "kadın", "girl", "#female", "dfz"]
+              : ["male", "man", "erkek", "boy", "#male", "cfs", "efz"];
+
+            const keywordMatch = matchingVoices.find(({ voice: v }) => {
+              const str = `${v.name} ${v.voiceURI}`.toLowerCase();
+              return targetKeywords.some(kw => str.includes(kw));
+            });
+
+            if (keywordMatch) {
+              selectedVoiceIndex = keywordMatch.index;
+            } else if (matchingVoices.length > 1) {
+              // Usually index 0 and 1 are different genders in Android TTS
+              selectedVoiceIndex = isFemale ? matchingVoices[0].index : matchingVoices[1].index;
+            } else {
+              selectedVoiceIndex = matchingVoices[0].index;
+            }
+          }
+        } catch (voiceQueryErr) {
+          console.warn("Could not query supported native voices:", voiceQueryErr);
+        }
+
+        const pitchVal = voice.gender === "female" ? 1.18 : 0.88;
+
         await NativeTTS.speak({
           text: cleanText,
           lang: voice.langCode || "tr-TR",
           rate: speedParam === "+35%" ? 1.35 : speedParam === "+20%" ? 1.15 : 1.0,
+          pitch: pitchVal,
+          voice: selectedVoiceIndex,
           category: "playback",
         });
 
@@ -318,7 +369,7 @@ export const useTextToSpeech = () => {
     }
 
     // 3. Web browsers general fallback: Web SpeechSynthesis
-    await speakNativeWeb(cleanText, voice.langCode, speedParam);
+    await speakNativeWeb(cleanText, voice.langCode, speedParam, voice.gender);
   }, [selectedVoiceId, speakingSpeed, getVoiceDetails, stop, speakNativeWeb]);
 
   return {

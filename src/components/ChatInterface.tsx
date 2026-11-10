@@ -107,7 +107,7 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
     startListening, 
     stopListening, 
     isSupported: isSpeechSupported 
-  } = useSpeechRecognition();
+  } = useSpeechRecognition(language);
 
   const { 
     speak, stop, isSpeaking, isLoading: isTTSLoading,
@@ -151,20 +151,16 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
     }
   }, []);
 
+  // Microphones on Android cannot be shared: pause wake word strictly when user is speaking, AI is responding, or TTS is speaking!
+  const isWakeWordPaused = isListening || isSpeaking || isTTSLoading || isLoading;
+
   const {
     isWakeWordEnabled,
     isWakeWordListening,
     toggleWakeWord,
     enableWakeWord,
     isSupported: isWakeWordSupported,
-  } = useWakeWord(handleWakeWordDetected);
-
-  useEffect(() => {
-    if (!isListening && isWakeWordEnabled && !isWakeWordListening) {
-      const timeout = setTimeout(() => { enableWakeWord(); }, 2000);
-      return () => clearTimeout(timeout);
-    }
-  }, [isListening, isWakeWordEnabled, isWakeWordListening, enableWakeWord]);
+  } = useWakeWord(handleWakeWordDetected, isWakeWordPaused);
 
   useEffect(() => {
     if (isDriveMode) {

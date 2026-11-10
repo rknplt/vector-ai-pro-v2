@@ -138,16 +138,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.4-release
-          name: "Vector AI Pro v2.5.4 (Native Android TTS & Persistent Wake Word)"
+          tag_name: v2.5.5-release
+          name: "Vector AI Pro v2.5.5 (Fix Speech Recognition, Drive Mode, Multi-Gender Voices & Multi-Language Sync)"
           body: |
-            ## Vector AI Pro v2.5.4 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.5 Sürümü Hazır! 🚀
             
-            - 🎙️ **Yerel Android Ses Motoru (Google TTS):** `@capacitor-community/text-to-speech` ile Android işletim sisteminin native ses motoru bağlandı. Asistan cevapları ve konuşma testleri mobilde yüksek sesle ve net biçimde çalışır.
-            - 🗣️ **Kesintisiz "Hey Vector" Sesli Uyanma:** Android arka plan watchdog sistemi ile ses tanıma hiç kapanmaz, sessizlikte zaman aşımına uğramaz. "Vector" dendiğinde uyanma sesi çalar ve dinlemeye başlar.
-            - 🛡️ **Açılışta Otomatik Mikrofon İzni:** Uygulama ilk açıldığında Android sistem izin penceresi otomatik tetiklenir.
-            - 🚗 **Tam Çalışan Sürüş Modu:** Sürüş modunda ekran uyanık kalır, sürekli Vector komutunuzu bekler ve cevapları sesli okur.
-            - 📱 **Mobil Üst Bar & Buton Düzeni:** Dik kullanımda tüm kontroller ekrana tam sığdırıldı.
+            - 🎙️ **Kusursuz Ses Tanıma & Uyanma Uyumu:** "Hey Vector" dedikten sonra konuşma tanıma oturumu (Speech Recognition) artık arka plan uyanma bekçisi tarafından kesilmez. Cümlenizi rahatça söyleyebilirsiniz, tamamlandığında mesaj otomatik iletilir.
+            - 🚗 **Tam Çalışan Sürüş Modu:** Sürüş modunda dinleme, AI yanıtı ve sesli okuma döngüsü mükemmel çalışır. "Vector" dediğinizde sizi dinler, cevabı sesli okur ve tekrar sessizce uyanma kelimesini bekler.
+            - 🗣️ **Kadın & Erkek Ses Ayrımı (Pitch & Voice Selection):** Emel (Kadın) ve Ahmet (Erkek) sesleri cihazınızda belirgin şekilde ayırt edilir. Android TTS ses motorunda frekans ve tonlama (pitch) ile kadın/erkek sesleri netleştirildi.
+            - 🌐 **Ses & Sohbet Dili Senkronizasyonu:** Ses ayarlarından dil değiştirildiğinde (İngilizce, Almanca vb.) yapay zeka asistanı artık kesinlikle seçilen dilde yanıt verir. Karşılama mesajı ve konuşma tanıma dili otomatik güncellenir.
+            - 📱 **Mobil Tam Ekran Sohbet:** Dik kullanımda üst ve alt çubuklar tam uyumlu ve temiz.
           files: |
             dist-assets/vector-ai-pro.apk
         env:

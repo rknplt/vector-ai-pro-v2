@@ -677,6 +677,25 @@ serve(async (req) => {
       : `\n\nŞu anki tarih ve saat: ${dateStr}, ${timeStr} (İstanbul saati). Tarih sorulduğunda HER ZAMAN bu tarihi kullan. Asla farklı bir tarih söyleme.`;
     systemPrompt += dateInfo;
 
+    const LANGUAGE_NAMES: Record<string, string> = {
+      tr: "Turkish (Türkçe)",
+      en: "English",
+      de: "German (Deutsch)",
+      fr: "French (Français)",
+      es: "Spanish (Español)",
+      ar: "Arabic (العربية)",
+      ru: "Russian (Русский)",
+      pt: "Portuguese (Português)",
+      ja: "Japanese (日本語)",
+      zh: "Chinese (中文)",
+      ko: "Korean (한국어)",
+      tl: "Filipino (Tagalog)",
+      hi: "Hindi (हिन्दी)",
+    };
+    const targetLang = language || 'tr';
+    const targetLangName = LANGUAGE_NAMES[targetLang] || targetLang;
+    systemPrompt += `\n\n[MANDATORY RESPONSE LANGUAGE]: The user's chosen app and voice language is ${targetLangName} (code: '${targetLang}'). You MUST ALWAYS formulate your entire response strictly and completely in ${targetLangName}. Never answer in another language unless the user specifically asks you to translate or converse in a different language.`;
+
     const isEnglish = language === 'en';
 
     // Detect URLs in the last user message for web summarization

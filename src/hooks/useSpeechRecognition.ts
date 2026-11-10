@@ -32,12 +32,30 @@ interface UseSpeechRecognitionReturn {
   isSupported: boolean;
 }
 
-export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
+export const LANG_TO_LOCALE: Record<string, string> = {
+  tr: "tr-TR",
+  en: "en-US",
+  de: "de-DE",
+  fr: "fr-FR",
+  es: "es-ES",
+  ar: "ar-SA",
+  ru: "ru-RU",
+  pt: "pt-BR",
+  ja: "ja-JP",
+  zh: "zh-CN",
+  ko: "ko-KR",
+  tl: "fil-PH",
+  hi: "hi-IN",
+};
+
+export const useSpeechRecognition = (language: string = "tr"): UseSpeechRecognitionReturn => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const accumulatedTranscriptRef = useRef("");
   const manualStopRef = useRef(false);
+
+  const activeLocale = LANG_TO_LOCALE[language] || "tr-TR";
 
   const isNative = Capacitor.isNativePlatform();
   const isSupported = isNative || (typeof window !== "undefined" && 
@@ -54,7 +72,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
     
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "tr-TR";
+    recognition.lang = activeLocale;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let finalTranscript = "";
@@ -97,7 +115,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
     };
 
     return recognition;
-  }, [isSupported, isNative]);
+  }, [isSupported, isNative, activeLocale]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -156,7 +174,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
         });
 
         await NativeSpeechRecognition.start({
-          language: "tr-TR",
+          language: activeLocale,
           maxResults: 2,
           partialResults: true,
           popup: false,
@@ -187,7 +205,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
       console.error("Failed to start browser speech recognition:", error);
       setIsListening(false);
     }
-  }, [isSupported, isNative, createRecognition]);
+  }, [isSupported, isNative, createRecognition, activeLocale]);
 
   const stopListening = useCallback(async () => {
     manualStopRef.current = true;

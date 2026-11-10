@@ -18,7 +18,8 @@ import {
 import { 
   VoiceOption, 
   LANGUAGE_VOICES, 
-  TEST_PHRASES 
+  TEST_PHRASES,
+  DEFAULT_VOICE_PER_LANG
 } from "@/hooks/useTextToSpeech";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,10 @@ const VoiceSettingsDialog = ({
                   onClick={() => {
                     setActiveLang(l.code);
                     setLanguage(l.code as any);
+                    const defVoice = DEFAULT_VOICE_PER_LANG[l.code];
+                    if (defVoice) {
+                      onSelectVoice(defVoice);
+                    }
                   }}
                   className={`text-xs px-3 py-1.5 rounded-full shrink-0 border transition-all flex items-center gap-1.5 ${
                     activeLang === l.code

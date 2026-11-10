@@ -48,7 +48,10 @@ const WAKE_PHRASES = [
 
 const WAKE_WORD_STORAGE_KEY = "vector-wake-word-enabled";
 
-export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn => {
+export const useWakeWord = (
+  onWakeWordDetected: () => void,
+  isPaused: boolean = false
+): UseWakeWordReturn => {
   const isNative = Capacitor.isNativePlatform();
   const [isWakeWordEnabled, setIsWakeWordEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem(WAKE_WORD_STORAGE_KEY);
@@ -61,6 +64,7 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const restartTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isEnabledRef = useRef(isWakeWordEnabled);
+  const isPausedRef = useRef(isPaused);
   const onWakeWordDetectedRef = useRef(onWakeWordDetected);
   const isStartingRef = useRef(false);
 
@@ -71,6 +75,10 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
     isEnabledRef.current = isWakeWordEnabled;
     localStorage.setItem(WAKE_WORD_STORAGE_KEY, String(isWakeWordEnabled));
   }, [isWakeWordEnabled]);
+
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   useEffect(() => {
     onWakeWordDetectedRef.current = onWakeWordDetected;
@@ -103,7 +111,7 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
   }, [isNative]);
 
   const startWakeWordDetection = useCallback(async () => {
-    if (!isSupported || !isEnabledRef.current || isStartingRef.current) return;
+    if (!isSupported || !isEnabledRef.current || isPausedRef.current || isStartingRef.current) return;
     isStartingRef.current = true;
 
     try {
@@ -126,6 +134,10 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
             const transcript = (data.matches || []).join(" ").toLowerCase();
             if (checkForWakeWord(transcript)) {
               console.log("Wake word detected on Android native:", transcript);
+              if (restartTimeoutRef.current) {
+                clearTimeout(restartTimeoutRef.current);
+                restartTimeoutRef.current = null;
+              }
               NativeSpeechRecognition.stop().catch(() => {});
               setIsWakeWordListening(false);
 
@@ -133,16 +145,18 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
                 if (onWakeWordDetectedRef.current) {
                   onWakeWordDetectedRef.current();
                 }
-              }, 250);
+              }, 200);
             }
           });
 
           await NativeSpeechRecognition.addListener("listeningState", (data: { status: "started" | "stopped" }) => {
             setIsWakeWordListening(data.status === "started");
-            if (data.status === "stopped" && isEnabledRef.current) {
+            if (data.status === "stopped" && isEnabledRef.current && !isPausedRef.current) {
               if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
               restartTimeoutRef.current = setTimeout(() => {
-                startWakeWordDetection();
+                if (isEnabledRef.current && !isPausedRef.current) {
+                  startWakeWordDetection();
+                }
               }, 800);
             }
           });
@@ -158,10 +172,12 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
         } catch (error) {
           console.warn("Native speech start notice (recovering in 1.5s):", error);
           setIsWakeWordListening(false);
-          if (isEnabledRef.current) {
+          if (isEnabledRef.current && !isPausedRef.current) {
             if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
             restartTimeoutRef.current = setTimeout(() => {
-              startWakeWordDetection();
+              if (isEnabledRef.current && !isPausedRef.current) {
+                startWakeWordDetection();
+              }
             }, 1500);
           }
         } finally {
@@ -192,6 +208,10 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
           const transcript = event.results[i][0].transcript;
           if (checkForWakeWord(transcript)) {
             console.log("Wake word detected on web:", transcript);
+            if (restartTimeoutRef.current) {
+              clearTimeout(restartTimeoutRef.current);
+              restartTimeoutRef.current = null;
+            }
             try { recognition.abort(); } catch { /* ignore */ }
             recognitionRef.current = null;
             setIsWakeWordListening(false);
@@ -200,7 +220,7 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
               if (onWakeWordDetectedRef.current) {
                 onWakeWordDetectedRef.current();
               }
-            }, 250);
+            }, 200);
             return;
           }
         }
@@ -208,20 +228,24 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         setIsWakeWordListening(false);
-        if (event.error !== "not-allowed" && event.error !== "aborted" && isEnabledRef.current) {
+        if (event.error !== "not-allowed" && event.error !== "aborted" && isEnabledRef.current && !isPausedRef.current) {
           if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = setTimeout(() => {
-            startWakeWordDetection();
+            if (isEnabledRef.current && !isPausedRef.current) {
+              startWakeWordDetection();
+            }
           }, 2000);
         }
       };
 
       recognition.onend = () => {
         setIsWakeWordListening(false);
-        if (isEnabledRef.current) {
+        if (isEnabledRef.current && !isPausedRef.current) {
           if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = setTimeout(() => {
-            startWakeWordDetection();
+            if (isEnabledRef.current && !isPausedRef.current) {
+              startWakeWordDetection();
+            }
           }, 1000);
         }
       };
@@ -231,10 +255,12 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
     } catch (error) {
       console.error("Failed to start wake word detection:", error);
       setIsWakeWordListening(false);
-      if (isEnabledRef.current) {
+      if (isEnabledRef.current && !isPausedRef.current) {
         if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = setTimeout(() => {
-          startWakeWordDetection();
+          if (isEnabledRef.current && !isPausedRef.current) {
+            startWakeWordDetection();
+          }
         }, 3000);
       }
     } finally {
@@ -243,24 +269,43 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
   }, [isSupported, isNative, checkForWakeWord, stopCurrentRecognition]);
 
   // Android Native Watchdog: Android SpeechRecognizer times out after silence.
-  // The watchdog keeps wake word permanently active without ever dying.
+  // The watchdog keeps wake word permanently active without ever dying,
+  // while strictly respecting the paused state during active chat speech or TTS playback.
   useEffect(() => {
     if (!isNative || !isWakeWordEnabled) return;
 
     const watchdog = setInterval(async () => {
-      if (!isEnabledRef.current || isStartingRef.current) return;
+      if (!isEnabledRef.current || isPausedRef.current || isStartingRef.current) return;
       try {
         const { listening } = await NativeSpeechRecognition.isListening();
-        if (!listening && isEnabledRef.current) {
+        if (!listening && isEnabledRef.current && !isPausedRef.current) {
           startWakeWordDetection();
         }
       } catch {
         // ignore
       }
-    }, 1800);
+    }, 2000);
 
     return () => clearInterval(watchdog);
   }, [isNative, isWakeWordEnabled, startWakeWordDetection]);
+
+  // Handle pause / resume transitions smoothly
+  useEffect(() => {
+    if (isPaused) {
+      if (restartTimeoutRef.current) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
+      stopCurrentRecognition();
+    } else if (isWakeWordEnabled) {
+      const timer = setTimeout(() => {
+        if (isEnabledRef.current && !isPausedRef.current) {
+          startWakeWordDetection();
+        }
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isPaused, isWakeWordEnabled, startWakeWordDetection, stopCurrentRecognition]);
 
   const enableWakeWord = useCallback(() => {
     if (!isSupported) return;
@@ -282,16 +327,6 @@ export const useWakeWord = (onWakeWordDetected: () => void): UseWakeWordReturn =
       enableWakeWord();
     }
   }, [isWakeWordEnabled, enableWakeWord, disableWakeWord]);
-
-  // Initial startup when enabled
-  useEffect(() => {
-    if (isWakeWordEnabled) {
-      const timer = setTimeout(() => {
-        startWakeWordDetection();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isWakeWordEnabled, startWakeWordDetection]);
 
   // Cleanup on unmount
   useEffect(() => {

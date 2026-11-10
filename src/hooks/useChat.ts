@@ -51,6 +51,16 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const loadedConversationRef = useRef<string | null>(null);
 
+  // Synchronize welcome message when language or mode changes for an empty chat
+  useEffect(() => {
+    setMessages(prev => {
+      if (prev.length === 1 && prev[0].id === "welcome") {
+        return [createWelcomeMessage(welcome, mode)];
+      }
+      return prev;
+    });
+  }, [welcome, mode]);
+
   // Load chat history when conversation changes
   useEffect(() => {
     if (!conversationId || conversationId === loadedConversationRef.current) {
@@ -302,7 +312,8 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
       if (!response.ok) {
         console.warn(`Primary AI gateway responded with ${response.status}, engaging Render fallback...`);
         try {
-          const fallbackReply = await callRenderBackend(input + searchAugmentation);
+          const langInstruction = language ? `[User Interface Language: ${language} - Please respond strictly in this language]\n` : "";
+          const fallbackReply = await callRenderBackend(langInstruction + input + searchAugmentation);
           assistantContent = fallbackReply;
           const assistantMessage: Message = {
             id: assistantMessageId,
