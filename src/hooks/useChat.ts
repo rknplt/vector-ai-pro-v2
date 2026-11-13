@@ -266,11 +266,31 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
     }
 
     try {
+      const langNames: Record<string, string> = {
+        en: "English",
+        de: "German",
+        fr: "French",
+        es: "Spanish",
+        ar: "Arabic",
+        ru: "Russian",
+        pt: "Portuguese",
+        ja: "Japanese",
+        zh: "Chinese",
+        ko: "Korean",
+        tl: "Filipino (Tagalog)",
+        hi: "Hindi",
+        tr: "Türkçe",
+      };
+      const targetLangName = langNames[language] || (language !== "tr" ? language : "");
+      const langInstruction = targetLangName && language !== "tr"
+        ? `[Language Directive: The user has selected ${targetLangName}. You must write your response completely and fluently in ${targetLangName}. Do NOT reply in Turkish.]\n\n`
+        : "";
+
       const chatMessages = messages
         .filter(m => m.id !== "welcome")
         .concat({
           ...userMessage,
-          content: userMessage.content + searchAugmentation,
+          content: langInstruction + userMessage.content + searchAugmentation,
         })
         .map(m => ({ role: m.role, content: m.content }));
 

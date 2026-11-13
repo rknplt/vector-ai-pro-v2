@@ -116,7 +116,7 @@ export const useSpeechRecognition = ({
   const [isWakeWordEnabled, setIsWakeWordEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem(WAKE_WORD_STORAGE_KEY);
     if (saved !== null) return saved === "true";
-    return isNative;
+    return false; // Safe default on initial install so microphone never freezes cold launch
   });
 
   const [isListening, setIsListening] = useState(false);
@@ -130,6 +130,8 @@ export const useSpeechRecognition = ({
   const accumulatedTranscriptRef = useRef("");
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isStartingRef = useRef(false);
 
   const activeLocale = LANG_TO_LOCALE[language] || "tr-TR";
 
@@ -148,11 +150,16 @@ export const useSpeechRecognition = ({
 
   // Unified Session Starter (Android Native or Web Speech)
   const startSession = useCallback(async (targetMode: "WAKE_WORD" | "COMMAND") => {
-    if (!isSupported || isPausedRef.current) return;
+    if (!isSupported || isPausedRef.current || isStartingRef.current) return;
+    isStartingRef.current = true;
 
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
+    }
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
     }
 
     // 1. Native Android Implementation via Capacitor
@@ -165,6 +172,7 @@ export const useSpeechRecognition = ({
             setIsListening(false);
             setIsWakeWordListening(false);
             modeRef.current = "IDLE";
+            isStartingRef.current = false;
             return;
           }
         }
@@ -198,15 +206,27 @@ export const useSpeechRecognition = ({
                 accumulatedTranscriptRef.current = "";
                 setTranscript("");
               }
-              return;
             }
+            return;
           }
 
           // B) Actively Recording Command
           if (modeRef.current === "COMMAND") {
             const commandText = stripWakeWord(raw);
-            accumulatedTranscriptRef.current = commandText;
-            setTranscript(commandText);
+            if (commandText) {
+              accumulatedTranscriptRef.current = commandText;
+              setTranscript(commandText);
+            }
+
+            // Silence detection: If user stops talking for 1.8 seconds, auto-submit command
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              if (modeRef.current === "COMMAND") {
+                setIsListening(false);
+                modeRef.current = "IDLE";
+                NativeSpeechRecognition.stop().catch(() => {});
+              }
+            }, 1800);
           }
         });
 
@@ -214,8 +234,9 @@ export const useSpeechRecognition = ({
           setIsWakeWordListening(data.status === "started");
 
           if (data.status === "stopped") {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             if (modeRef.current === "COMMAND") {
-              // Sentence finished! Let ChatInterface send the accumulated transcript
+              // Sentence finished! ChatInterface will auto-send
               setIsListening(false);
               modeRef.current = "IDLE";
             } else if (modeRef.current === "WAKE_WORD" && isWakeWordEnabledRef.current && !isPausedRef.current) {
@@ -235,11 +256,25 @@ export const useSpeechRecognition = ({
           setIsListening(true);
         }
 
-        await NativeSpeechRecognition.start({
+        // Do not synchronously block execution with await start, let it resolve on results
+        NativeSpeechRecognition.start({
           language: activeLocale,
-          maxResults: 2,
+          maxResults: 5,
           partialResults: true,
           popup: false,
+        }).then((res) => {
+          if (res && res.matches && res.matches.length > 0) {
+            const raw = res.matches.join(" ").trim();
+            if (raw) {
+              const commandText = stripWakeWord(raw);
+              if (commandText) {
+                accumulatedTranscriptRef.current = commandText;
+                setTranscript(commandText);
+              }
+            }
+          }
+        }).catch((err) => {
+          console.warn("SpeechRecognition start caught:", err);
         });
 
         setIsWakeWordListening(true);
@@ -256,6 +291,8 @@ export const useSpeechRecognition = ({
             }
           }, 1200);
         }
+      } finally {
+        isStartingRef.current = false;
       }
       return;
     }
@@ -263,7 +300,10 @@ export const useSpeechRecognition = ({
     // 2. Web Browser Implementation (Web Speech API)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognitionAPI) return;
+    if (!SpeechRecognitionAPI) {
+      isStartingRef.current = false;
+      return;
+    }
 
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch { /* ignore */ }
@@ -366,6 +406,8 @@ export const useSpeechRecognition = ({
       setIsWakeWordListening(true);
     } catch {
       /* ignore */
+    } finally {
+      isStartingRef.current = false;
     }
   }, [isSupported, isNative, activeLocale]);
 
@@ -458,18 +500,6 @@ export const useSpeechRecognition = ({
       enableWakeWord();
     }
   }, [isWakeWordEnabled, enableWakeWord, disableWakeWord]);
-
-  // Initial activation on launch
-  useEffect(() => {
-    if (isWakeWordEnabled && !isPaused) {
-      const timer = setTimeout(() => {
-        if (!isPausedRef.current && isWakeWordEnabledRef.current && modeRef.current === "IDLE") {
-          startSession("WAKE_WORD");
-        }
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [isWakeWordEnabled, isPaused, startSession]);
 
   // Cleanup on unmount
   useEffect(() => {

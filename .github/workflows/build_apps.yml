@@ -138,15 +138,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.6-release
-          name: "Vector AI Pro v2.5.6 (Unified Audio Engine, Real Azure Neural TTS & Drive Mode)"
+          tag_name: v2.5.7-release
+          name: "Vector AI Pro v2.5.7 (Fix Black Screen, Smooth Voice Engine & Neural Audio)"
           body: |
-            ## Vector AI Pro v2.5.6 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.7 Sürümü Hazır! 🚀
             
-            - 🎙️ **Tek ve Birleşik Ses Motoru (Sıfır Kesinti):** "Vector" uyanma kelimesi ile konuşma tanıma tek bir oturumda birleştirildi. Artık oturum kapatılıp açılmaz; "Vector" dediğiniz andan itibaren mikrofon kesintisiz sizi dinler, cümleniz bittiğinde mesaj otomatik gönderilir.
-            - 🗣️ **Gerçek Stüdyo Kalitesinde Kadın & Erkek Sesleri (Microsoft Azure Neural):** Android dahili robot ses motorunun kısıtları aşıldı. Emel (Gerçek kadın sesi) ve Ahmet (Gerçek erkek sesi), Jenny, Guy, Katja, Conrad stüdyo ses kalitesinde canlı konuşur.
-            - 🚗 **Kusursuz Sürüş Modu:** Sürüş modunda "Vector" uyarısı, dinleme ve cevap okuma döngüsü sıfır kesintiyle çalışır.
-            - 🌐 **Dil Senkronizasyonu:** Dil değiştirildiğinde hem AI hem ses motoru anında yeni dile geçer.
+            - 🛡️ **Siyah Ekran Sorunu Çözüldü:** Mobilde uygulamanın açılışta siyah ekranda kalmasına yol açan başlatma hatası ve izin çakışmaları tamamen giderildi. Root ErrorBoundary koruması eklendi; uygulama artık anında ve pürüzsüz açılır.
+            - 🎙️ **Kusursuz Ses Tanıma & Dinleme:** "Vector" uyanma kelimesi veya mikrofon butonu ile dinleme sıfır kilitlenmeyle çalışır. Cümleniz bittiğinde 1.8 saniye sessizlik algılanır algılanmaz mesaj otomatik olarak yapay zekaya gönderilir.
+            - 🗣️ **Gerçek Stüdyo Kalitesinde Kadın & Erkek Sesleri (Microsoft Azure Neural):** Emel (Kadın) ve Ahmet (Erkek) sesleri stüdyo kalitesinde konuşur. Artık cihazın tek tip robot sesi yerine gerçek kadın ve erkek sesleri aktiftir.
+            - 🌐 **Çok Dilli Sohbet Senkronizasyonu:** Dil İngilizce, Almanca veya başka bir dil seçildiğinde yapay zeka kesinlikle o dilde yanıt verir.
+            - 🚗 **Gelişmiş Sürüş Modu:** Sürüş modunda dinleme ve yanıt okuma döngüsü kesintisiz işler.
           files: |
             dist-assets/vector-ai-pro.apk
         env:

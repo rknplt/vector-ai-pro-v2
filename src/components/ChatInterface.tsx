@@ -99,17 +99,17 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   const lastTapRef = useRef<number>(0);
   const { generateImage, isGenerating } = useImageGeneration();
   const { processCommand } = useVoiceCommands();
-  
-  const handleWakeWordDetected = useCallback(() => {
-    toast({ title: "Hey Vector!", description: t("chat.listening") || "Seni dinliyorum..." });
-    if (isSpeaking) stop();
-  }, [isSpeaking, stop, t]);
 
   const { 
     speak, stop, isSpeaking, isLoading: isTTSLoading,
     selectedVoiceId, selectVoice,
     speakingSpeed, changeSpeed,
   } = useTextToSpeech();
+  
+  const handleWakeWordDetected = useCallback(() => {
+    toast({ title: "Hey Vector!", description: t("chat.listening") || "Seni dinliyorum..." });
+    if (isSpeaking) stop();
+  }, [isSpeaking, stop, t]);
 
   const { 
     isListening, 
@@ -129,17 +129,6 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   });
 
   const isWakeWordSupported = isSpeechSupported;
-
-  // Request native microphone permissions proactively on mobile app launch
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      NativeSpeechRecognition.checkPermissions().then((status) => {
-        if (status.speechRecognition !== "granted") {
-          NativeSpeechRecognition.requestPermissions().catch(() => {});
-        }
-      }).catch(() => {});
-    }
-  }, []);
 
   useEffect(() => {
     if (isDriveMode) {
