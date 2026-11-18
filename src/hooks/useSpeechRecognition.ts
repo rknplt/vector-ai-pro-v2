@@ -190,8 +190,6 @@ export const useSpeechRecognition = ({
             const matched = WAKE_PHRASES.some(phrase => lower.includes(phrase));
             if (matched) {
               console.log("Wake word recognized seamlessly on Android:", raw);
-              modeRef.current = "COMMAND";
-              setIsListening(true);
               playWakeChime();
               if (onWakeWordDetectedRef.current) {
                 onWakeWordDetectedRef.current();
@@ -200,11 +198,48 @@ export const useSpeechRecognition = ({
               // Extract any command spoken in the same breath
               const commandText = stripWakeWord(raw);
               if (commandText) {
+                modeRef.current = "COMMAND";
+                setIsListening(true);
                 accumulatedTranscriptRef.current = commandText;
                 setTranscript(commandText);
+
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                silenceTimerRef.current = setTimeout(() => {
+                  if (modeRef.current === "COMMAND") {
+                    setIsListening(false);
+                    modeRef.current = "IDLE";
+                    NativeSpeechRecognition.stop().catch(() => {});
+                  }
+                }, 1800);
               } else {
+                // User said "Vector" and paused to be heard!
+                // We transition to COMMAND mode, clear input, and immediately restart fresh listening
+                modeRef.current = "COMMAND";
+                setIsListening(true);
                 accumulatedTranscriptRef.current = "";
                 setTranscript("");
+
+                // Stop current wake recognition so new clean utterance begins
+                NativeSpeechRecognition.stop().catch(() => {});
+                if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+                restartTimerRef.current = setTimeout(() => {
+                  if (modeRef.current === "COMMAND" && !isPausedRef.current) {
+                    startSession("COMMAND");
+                  }
+                }, 200);
+
+                // If user doesn't say anything for 6 seconds, return to wake word
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                silenceTimerRef.current = setTimeout(() => {
+                  if (modeRef.current === "COMMAND" && !accumulatedTranscriptRef.current.trim()) {
+                    setIsListening(false);
+                    modeRef.current = "IDLE";
+                    NativeSpeechRecognition.stop().catch(() => {});
+                    if (isWakeWordEnabledRef.current && !isPausedRef.current) {
+                      setTimeout(() => startSession("WAKE_WORD"), 400);
+                    }
+                  }
+                }, 6000);
               }
             }
             return;
@@ -234,12 +269,16 @@ export const useSpeechRecognition = ({
           setIsWakeWordListening(data.status === "started");
 
           if (data.status === "stopped") {
-            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             if (modeRef.current === "COMMAND") {
-              // Sentence finished! ChatInterface will auto-send
-              setIsListening(false);
-              modeRef.current = "IDLE";
+              const hasCommand = !!accumulatedTranscriptRef.current.trim();
+              if (hasCommand) {
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                // Sentence finished! ChatInterface will auto-send
+                setIsListening(false);
+                modeRef.current = "IDLE";
+              }
             } else if (modeRef.current === "WAKE_WORD" && isWakeWordEnabledRef.current && !isPausedRef.current) {
+              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
               // Silence timeout during idle wake-word: restart smoothly in 400ms
               if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
               restartTimerRef.current = setTimeout(() => {
@@ -338,8 +377,6 @@ export const useSpeechRecognition = ({
         const matched = WAKE_PHRASES.some(phrase => lower.includes(phrase));
         if (matched) {
           console.log("Wake word recognized on Web:", raw);
-          modeRef.current = "COMMAND";
-          setIsListening(true);
           playWakeChime();
           if (onWakeWordDetectedRef.current) {
             onWakeWordDetectedRef.current();
@@ -347,11 +384,43 @@ export const useSpeechRecognition = ({
 
           const commandText = stripWakeWord(raw);
           if (commandText) {
+            modeRef.current = "COMMAND";
+            setIsListening(true);
             accumulatedTranscriptRef.current = commandText;
             setTranscript(commandText);
+
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              if (modeRef.current === "COMMAND") {
+                setIsListening(false);
+                modeRef.current = "IDLE";
+                try { recognition.abort(); } catch { /* ignore */ }
+              }
+            }, 1800);
           } else {
+            modeRef.current = "COMMAND";
+            setIsListening(true);
             accumulatedTranscriptRef.current = "";
             setTranscript("");
+            try { recognition.abort(); } catch { /* ignore */ }
+            if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+            restartTimerRef.current = setTimeout(() => {
+              if (modeRef.current === "COMMAND" && !isPausedRef.current) {
+                startSession("COMMAND");
+              }
+            }, 200);
+
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              if (modeRef.current === "COMMAND" && !accumulatedTranscriptRef.current.trim()) {
+                setIsListening(false);
+                modeRef.current = "IDLE";
+                try { recognition.abort(); } catch { /* ignore */ }
+                if (isWakeWordEnabledRef.current && !isPausedRef.current) {
+                  setTimeout(() => startSession("WAKE_WORD"), 400);
+                }
+              }
+            }, 6000);
           }
           return;
         }
@@ -359,8 +428,19 @@ export const useSpeechRecognition = ({
 
       if (modeRef.current === "COMMAND") {
         const commandText = stripWakeWord(raw);
-        accumulatedTranscriptRef.current = commandText;
-        setTranscript(commandText);
+        if (commandText) {
+          accumulatedTranscriptRef.current = commandText;
+          setTranscript(commandText);
+        }
+
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(() => {
+          if (modeRef.current === "COMMAND") {
+            setIsListening(false);
+            modeRef.current = "IDLE";
+            try { recognition.abort(); } catch { /* ignore */ }
+          }
+        }, 1800);
       }
     };
 
@@ -384,8 +464,12 @@ export const useSpeechRecognition = ({
     recognition.onend = () => {
       setIsWakeWordListening(false);
       if (modeRef.current === "COMMAND") {
-        setIsListening(false);
-        modeRef.current = "IDLE";
+        const hasCommand = !!accumulatedTranscriptRef.current.trim();
+        if (hasCommand) {
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+          setIsListening(false);
+          modeRef.current = "IDLE";
+        }
       } else if (isWakeWordEnabledRef.current && !isPausedRef.current) {
         if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
         restartTimerRef.current = setTimeout(() => {

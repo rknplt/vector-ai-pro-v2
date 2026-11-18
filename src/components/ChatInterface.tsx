@@ -133,6 +133,10 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   useEffect(() => {
     if (isDriveMode) {
       setAutoSpeak(true);
+      const currentLast = messages[messages.length - 1];
+      if (currentLast) {
+        lastMessageIdRef.current = currentLast.id;
+      }
       if (!isWakeWordEnabled) {
         enableWakeWord();
       }
@@ -146,6 +150,7 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
         title: "🚗 Sürüş Modu",
         description: "Ekran karartıldı. 'Vektör' diyerek konuşabilirsiniz.",
       });
+      speak("Sürüş modu devrede. 'Vektör' diyerek seslenebilirsiniz.");
     } else {
       if (wakeLockRef.current) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,7 +158,7 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
         wakeLockRef.current = null;
       }
     }
-  }, [isDriveMode, isWakeWordEnabled, enableWakeWord]);
+  }, [isDriveMode, isWakeWordEnabled, enableWakeWord, messages, speak]);
 
   const handleDriveModeTap = () => {
     const now = Date.now();
@@ -437,8 +442,8 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
   const handleTemplateSelect = (prompt: string) => { setInput(prompt); };
 
   return (
-    <section id="chat" className={fullScreen ? "h-full w-full flex flex-col flex-1 overflow-hidden" : "py-12 md:py-24 relative"}>
-      <div className={fullScreen ? "h-full w-full flex flex-col flex-1 overflow-hidden" : "container mx-auto px-2 md:px-4"}>
+    <section id="chat" className={fullScreen ? "h-full w-full flex flex-col flex-1 min-h-0 overflow-hidden" : "py-12 md:py-24 relative"}>
+      <div className={fullScreen ? "h-full w-full flex flex-col flex-1 min-h-0 overflow-hidden" : "container mx-auto px-2 md:px-4"}>
         {!fullScreen && (
           <div className="text-center mb-6 md:mb-12">
             <h2 className="text-2xl md:text-5xl font-bold mb-2 md:mb-4">
@@ -450,9 +455,9 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
           </div>
         )}
 
-        <div className={fullScreen ? "h-full w-full flex flex-col flex-1 overflow-hidden" : "max-w-5xl mx-auto"}>
+        <div className={fullScreen ? "h-full w-full flex flex-col flex-1 min-h-0 overflow-hidden" : "max-w-5xl mx-auto"}>
           <div className={fullScreen 
-            ? "glass-card border-0 rounded-none flex flex-col md:flex-row h-full w-full flex-1 overflow-hidden" 
+            ? "glass-card border-0 rounded-none flex flex-col md:flex-row h-full w-full flex-1 min-h-0 overflow-hidden" 
             : "glass-card rounded-2xl md:rounded-3xl overflow-hidden border border-border/30 flex flex-col md:flex-row h-[70vh] md:h-[75vh]"
           }>
             {/* Mobile Sidebar Overlay */}
@@ -487,7 +492,7 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
               {/* Chat Header */}
               <div className="flex items-center justify-between p-2 md:p-3 border-b border-border/30 gap-1 sm:gap-2 min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
@@ -617,7 +622,10 @@ const ChatInterface = ({ fullScreen = false }: ChatInterfaceProps) => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 min-h-0 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4">
+              <div 
+                className="flex-1 min-h-0 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4 overscroll-contain touch-pan-y"
+                style={{ WebkitOverflowScrolling: "touch" }}
+              >
                 {isLoadingHistory ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="flex items-center gap-2 text-muted-foreground">

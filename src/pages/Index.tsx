@@ -20,9 +20,9 @@ const Index = () => {
   // Giriş yapılmışsa doğrudan TAM EKRAN ChatGPT / Native Mobil Uygulama arayüzü
   if (user) {
     return (
-      <div className="h-[100dvh] max-h-[100dvh] flex flex-col bg-background overflow-hidden">
+      <div className="h-[100dvh] max-h-[100dvh] w-full flex flex-col bg-background overflow-hidden">
         <Header compact={true} />
-        <main className="flex-1 w-full h-[calc(100dvh-4rem)] overflow-hidden pt-16">
+        <main className="flex-1 w-full min-h-0 overflow-hidden pt-16 flex flex-col">
           <ChatInterface fullScreen={true} />
         </main>
       </div>
