@@ -138,15 +138,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v2.5.8-release
-          name: "Vector AI Pro v2.5.8 (Smooth Chat Scroll, Step-by-Step Wake Word & Drive Loop)"
+          tag_name: v2.5.9-release
+          name: "Vector AI Pro v2.5.9 (Kullanıcıya Özel Akıllı Persona & Hitap Protokolü)"
           body: |
-            ## Vector AI Pro v2.5.8 Sürümü Hazır! 🚀
+            ## Vector AI Pro v2.5.9 Sürümü Hazır! 🚀
             
-            - 📱 **Sohbet Ekranı Kaydırma (Scroll) Sorunu Çözüldü:** Mobilde mesajlar çoğaldığında ekranın sabit kalması ve yukarı kaydırılamaması sorunu tamamen giderildi. Artık parmağınızla yukarı-aşağı pürüzsüzce kaydırabilirsiniz.
-            - 🎙️ **Adım Adım Kusursuz Sesli Asistan Döngüsü:** "Vektör" diye seslendiğinizde dinleme oturumu açılır, ne istediğinizi söylediğinizde cümleniz bittiği an (sessizlik algılandığında) dinleme kapanır, mesajınız yapay zekaya gönderilir ve yanıtı sesli olarak okunur.
-            - 🚗 **Kesintisiz Sürüş Modu:** Sürüş moduna girildiğinde eski sohbet mesajını okuma sorunu giderildi; yalnızca yeni gelen yanıtlar sesli okunur ve cevap biter bitmez arka planda yeniden "Vektör" komutunuz beklenir.
-            - 🗣️ **Stüdyo Ses Motoru Korundu:** Microsoft Azure Neural kadın/erkek sesleri bozulmadan aynen muhafaza edildi.
+            - 👑 **Orkun Bey'e Özel Hitap ve Dostane Samimiyet:** Orkun Bey giriş yaptığında Vector her zaman saygıyla 'Orkun Bey' olarak hitap eder. Orkun Bey dilediğinde samimi, arkadaşça veya esprili sohbet ettiğinde Vector de aynı içtenlikle ve bir dost sıcaklığında karşılık verir.
+            - 👥 **Giriş Yapan Kişiye Göre Dinamik Persona:** Diğer kullanıcılar giriş yaptığında Vector kendisini 'Vector AI Pro' olarak tanıtır ve kullanıcıya ismiyle/saygıyla hitap eder. Geliştirici veya kurucu sorulduğunda Vector AI Pro'nun Orkun Bey (Orkun Polat) tarafından geliştirildiğini belirtir.
+            - ⚡ **Tüm Motorlarda Tam Entegrasyon:** Hem Supabase Edge Gateway hem 7/24 Render Ajan Ekibi ve Çoklu Model yedek motoru bu persona protokolünü ortaklaşa yürütür.
+            - 🗣️ **Stüdyo Ses Motoru Dokunulmadan Korundu:** Microsoft Azure Neural kadın/erkek sesleri hiçbir bozulma olmadan aynen korundu.
           files: |
             dist-assets/vector-ai-pro.apk
         env:

@@ -151,7 +151,7 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
   }, [conversationId, welcome, mode]);
 
   // Direct fallback to 24/7 Render Multi-Agent Backend
-  const callRenderBackend = async (prompt: string): Promise<string> => {
+  const callRenderBackend = async (prompt: string, senderName: string = "Patron"): Promise<string> => {
     const resp = await fetch(`${RENDER_BACKEND_URL}/api/chat`, {
       method: "POST",
       headers: {
@@ -160,7 +160,7 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
       },
       body: JSON.stringify({
         message: prompt,
-        sender: "Patron",
+        sender: senderName,
       }),
     });
     if (!resp.ok) {
@@ -185,6 +185,12 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
       toast({ variant: "destructive", title: "Oturum Gerekli", description: "Mesaj göndermek için lütfen giriş yapın." });
       return;
     }
+
+    const userEmail = (session.user.email || "").toLowerCase();
+    const userMeta = (session.user.user_metadata || {}) as Record<string, any>;
+    const fullName = userMeta.full_name || userMeta.name || "";
+    const isOrkun = userEmail.includes("orkun") || userEmail.includes("rknplt") || fullName.toLowerCase().includes("orkun");
+    const senderName = isOrkun ? "Orkun Bey" : (fullName || "Kullanıcı");
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -245,8 +251,8 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
     // If Mode is Agent Team: directly invoke our 24/7 autonomous company engine!
     if (effectiveMode === 'agent-team') {
       try {
-        const teamPrompt = `[9 Kişilik Otonom Ajan Ekibi Görevi]\nKullanıcı Görevi: ${input}${searchAugmentation}\nLütfen CEO, Yazılım Mimarı, Kıdemli Geliştirici, Siber Güvenlik, QA Test ve DevOps uzmanı sırasıyla kendi analiz, mimari, kod ve test çıktılarını detaylı ve yapılandırılmış şekilde sunsun.`;
-        const teamResponse = await callRenderBackend(teamPrompt);
+        const teamPrompt = `[9 Kişilik Otonom Ajan Ekibi Görevi]\nKullanıcı: ${senderName}\nGörev: ${input}${searchAugmentation}\nLütfen CEO, Yazılım Mimarı, Kıdemli Geliştirici, Siber Güvenlik, QA Test ve DevOps uzmanı sırasıyla kendi analiz, mimari, kod ve test çıktılarını detaylı ve yapılandırılmış şekilde sunsun.`;
+        const teamResponse = await callRenderBackend(teamPrompt, senderName);
         assistantContent = teamResponse;
         const assistantMessage: Message = {
           id: assistantMessageId,
@@ -286,11 +292,15 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
         ? `[Language Directive: The user has selected ${targetLangName}. You must write your response completely and fluently in ${targetLangName}. Do NOT reply in Turkish.]\n\n`
         : "";
 
+      const identityInstruction = isOrkun
+        ? `[Kullanıcı Kimliği ve Hitap Protokolü: Şu an seninle konuşan kişi kurucun ve yöneticin Orkun Bey'dir. Ona daima ve kesinlikle 'Orkun Bey' olarak hitap et. Orkun Bey dilediğinde samimi, esprili, dertleşir veya arkadaşça sohbet eder; sen de aynı içtenlikle, sıcak, esprili ve yakın bir dost gibi konuş; aşırı resmi kurumsal kalıpları bir kenara bırak ama 'Orkun Bey' hitabını ve saygını daima koru.]\n\n`
+        : `[Kullanıcı Kimliği ve Hitap Protokolü: Kullanıcı ${senderName}. Kullanıcıya saygılı ve kibar yaklaş. Kendini Vector AI Pro olarak tanıt. Kurucun veya geliştiricin sorulursa Orkun Bey (Orkun Polat) tarafından geliştirildiğini belirt. Asla 'Orkun Bey'in kişisel asistanıyım' deme; Vector AI Pro olarak hizmet ver.]\n\n`;
+
       const chatMessages = messages
         .filter(m => m.id !== "welcome")
         .concat({
           ...userMessage,
-          content: langInstruction + userMessage.content + searchAugmentation,
+          content: identityInstruction + langInstruction + userMessage.content + searchAugmentation,
         })
         .map(m => ({ role: m.role, content: m.content }));
 
@@ -333,7 +343,7 @@ export const useChat = (conversationId: string | null, mode: string = 'general',
         console.warn(`Primary AI gateway responded with ${response.status}, engaging Render fallback...`);
         try {
           const langInstruction = language ? `[User Interface Language: ${language} - Please respond strictly in this language]\n` : "";
-          const fallbackReply = await callRenderBackend(langInstruction + input + searchAugmentation);
+          const fallbackReply = await callRenderBackend(identityInstruction + langInstruction + input + searchAugmentation, senderName);
           assistantContent = fallbackReply;
           const assistantMessage: Message = {
             id: assistantMessageId,
